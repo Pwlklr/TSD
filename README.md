@@ -24,13 +24,11 @@ Refer to the setup instructions for each part of the system.
 
 ### **Frontend (Angular)**
 
-- **Node.js 20.x LTS
-** (Angular CLI requires >= 20.19)
+- **Node.js 20.x LTS** (Angular CLI requires >= 20.19)
 - **npm** (bundled with Node)
 - **Angular CLI**
 + **How to install**
-
-``bash
+```bash
 npm install -g @angular/cli
 ```
 
@@ -51,25 +49,25 @@ Before you start, make sure to have all tools installed from the **Required Tool
 
 Navigate to the backend directory:
 
-``bash
+```bash
 cd backend
 ```
 
 Run the application:
 
-``bash
+```bash
 ./gradlew bootRun
 ```
 
 Run tests:
 
-``bash
+```bash
 ./gradlew test
 ```
 
 Rebuild the backend:
 
-``bash
+```bash
 ./gradlew build
 ```
 
@@ -85,19 +83,19 @@ Backend will start on:
 
 Navigate to the frontend directory:
 
-``bash
+```bash
 cd frontend
 ```
 
 Install dependencies:
 
-``bash
+```bash
 npm install
 ```
 
 Start the dev server:
 
-``bash
+```bash
 npm start
 ```
 
