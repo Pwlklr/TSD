@@ -3,7 +3,11 @@ name: Backend CI
 on:
   push:
     branches:
-      - main
+      - '**'
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, Deploy ]
 
 jobs:
   build:
@@ -23,8 +27,24 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
+
+      - name: Run SpotBugs
+        run: ./gradlew spotbugsMain spotbugsTest
+
+      - name: Run Checkstyle
+        run: ./gradlew checkstyleMain checkstyleTest
 
       - name: Build and run tests
         run: ./gradlew build
