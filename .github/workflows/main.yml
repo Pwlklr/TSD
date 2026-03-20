@@ -43,8 +43,5 @@ jobs:
       - name: Run SpotBugs
         run: ./gradlew spotbugsMain spotbugsTest
 
-      - name: Run Checkstyle
-        run: ./gradlew checkstyleMain checkstyleTest
-
       - name: Build and run tests
         run: ./gradlew build
