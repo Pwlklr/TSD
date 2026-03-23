@@ -139,7 +139,7 @@ The stack for this stage includes:
 
 | Name         | Role           |
 |-------------------|--------------|
-| **Pawel Kelar** | Developer |
+| **Paweł Kelar** | Developer |
 | **Filip Urbanski** | Developer |
 | **Wojciech Szott** | Developer    |
-| **Jakub Luzak** | Developer |
+| **Jakub Urbaniak** | Developer |
