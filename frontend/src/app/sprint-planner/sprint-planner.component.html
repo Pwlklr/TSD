@@ -19,10 +19,22 @@
     </form>
 
     <ul>
-      <li *ngFor="let story of stories">
-        <strong>{{ story.title }}</strong>
+      <li *ngFor="let story of stories" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">        <strong>{{ story.title }}</strong>
+        <span class="status-badge">{{ story.status }}</span>
         <p *ngIf="story.description">{{ story.description }}</p>
+
+        <div class="status-container">
+          <span class="status-label">Status</span>
+          <select class="status-select"
+                  [value]="story.status"
+                  (change)="changeStatus(story.id, $any($event.target).value)">
+            <option value="To Do">To Do</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+        </div>
       </li>
+
     </ul>
   </section>
 </div>

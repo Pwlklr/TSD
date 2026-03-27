@@ -6,15 +6,15 @@ import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-sprint-planner',
-  standalone: true, 
-  imports: [ReactiveFormsModule, CommonModule], 
+  standalone: true,
+  imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './sprint-planner.component.html',
   styleUrls: ['./sprint-planner.component.css']
 })
 export class SprintPlannerComponent implements OnInit {
   sprintGoal: string = '';
   stories: UserStory[] = [];
-  
+
   goalForm: FormGroup;
   storyForm: FormGroup;
 
@@ -29,7 +29,10 @@ export class SprintPlannerComponent implements OnInit {
   ngOnInit() {
     const saved = this.sprintService.getData();
     this.sprintGoal = saved.goal;
-    this.stories = saved.stories;
+    this.stories = saved.stories.map(story => ({
+      ...story,
+      status: story.status || 'To Do'
+    }));
     this.goalForm.patchValue({ goal: this.sprintGoal });
   }
 
@@ -42,9 +45,10 @@ export class SprintPlannerComponent implements OnInit {
     if (this.storyForm.valid) {
       const newStory: UserStory = {
         id: Date.now(),
+        status: 'To Do',
         ...this.storyForm.value
       };
-      this.stories.push(newStory);
+        this.stories.push(newStory);
       this.storyForm.reset();
       this.persist();
     }
@@ -56,4 +60,14 @@ export class SprintPlannerComponent implements OnInit {
       stories: this.stories
     });
   }
+
+  changeStatus(storyId: number, status: 'To Do' | 'In Progress' | 'Done') {
+    const story = this.stories.find(s => s.id === storyId);
+    if (story) {
+      story.status = status;
+      this.persist();
+    }
+  }
+
+
 }

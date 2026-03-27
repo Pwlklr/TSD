@@ -39,3 +39,62 @@ li {
   border-left: 5px solid #007bff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
+
+.status-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 12px;
+  color: white;
+}
+
+.to-do .status-badge {
+  background-color: gray;
+}
+
+.in-progress .status-badge {
+  background-color: orange;
+}
+
+.done .status-badge {
+  background-color: green;
+}
+.status-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.status-select {
+  padding: 4px 10px;
+  border-radius: 16px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.to-do .status-select {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.in-progress .status-select {
+  background-color: #ffe0b2;
+  color: #e65100;
+}
+
+.done .status-select {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
