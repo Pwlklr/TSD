@@ -1,0 +1,28 @@
+<div class="container">
+  <section>
+    <h2>Sprint Goal</h2>
+    <form [formGroup]="goalForm" (ngSubmit)="updateGoal()">
+      <input formControlName="goal" placeholder="Enter sprint goal...">
+      <button type="submit">Set Goal</button>
+    </form>
+    <p class="display-goal"><strong>Current Goal:</strong> {{ sprintGoal || 'No goal set.' }}</p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>User Stories</h2>
+    <form [formGroup]="storyForm" (ngSubmit)="addStory()">
+      <input formControlName="title" placeholder="Story Title">
+      <textarea formControlName="description" placeholder="Optional Description"></textarea>
+      <button type="submit" [disabled]="storyForm.invalid">Add Story</button>
+    </form>
+
+    <ul>
+      <li *ngFor="let story of stories">
+        <strong>{{ story.title }}</strong>
+        <p *ngIf="story.description">{{ story.description }}</p>
+      </li>
+    </ul>
+  </section>
+</div>
