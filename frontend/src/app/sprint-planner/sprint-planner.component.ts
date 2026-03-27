@@ -69,5 +69,14 @@ export class SprintPlannerComponent implements OnInit {
     }
   }
 
+  get progressPercentage(): number {
+    if (this.stories.length === 0) {
+      return 0;
+    }
+
+    const doneStories = this.stories.filter(story => story.status === 'Done').length;
+    return Math.round((doneStories / this.stories.length) * 100);
+  }
+
 
 }
