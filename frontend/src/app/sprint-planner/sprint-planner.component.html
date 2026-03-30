@@ -1,4 +1,15 @@
 <div class="container">
+  <div class="progress-section">
+    <div class="progress-header">
+      <h3>Sprint Progress</h3>
+      <span>{{ progressPercentage }}%</span>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="progressPercentage"></div>
+    </div>
+  </div>
+
   <section>
     <h2>Sprint Goal</h2>
     <form [formGroup]="goalForm" (ngSubmit)="updateGoal()">
@@ -7,7 +18,6 @@
     </form>
     <p class="display-goal"><strong>Current Goal:</strong> {{ sprintGoal || 'No goal set.' }}</p>
   </section>
-
   <hr>
 
   <section>
@@ -19,10 +29,22 @@
     </form>
 
     <ul>
-      <li *ngFor="let story of stories">
-        <strong>{{ story.title }}</strong>
+      <li *ngFor="let story of stories" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">        <strong>{{ story.title }}</strong>
+        <span class="status-badge">{{ story.status }}</span>
         <p *ngIf="story.description">{{ story.description }}</p>
+
+        <div class="status-container">
+          <span class="status-label">Status</span>
+          <select class="status-select"
+                  [value]="story.status"
+                  (change)="changeStatus(story.id, $any($event.target).value)">
+            <option value="To Do">To Do</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+        </div>
       </li>
+
     </ul>
   </section>
 </div>
