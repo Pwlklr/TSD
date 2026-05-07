@@ -17,7 +17,6 @@ public class SprintController {
     @PostMapping
     public SprintSession createSprintSession() {
         String sessionId = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        
         SprintSession newSession = new SprintSession(sessionId, "", new ArrayList<>());
         sprintStorage.put(sessionId, newSession);
         
@@ -25,21 +24,48 @@ public class SprintController {
     }
 
     public static class SprintSession {
-        public String sessionId;
-        public String goal;
-        public List<UserStory> stories;
+        private String sessionId;
+        private String goal;
+        private List<UserStory> stories;
+
+        public SprintSession() {
+        }
 
         public SprintSession(String sessionId, String goal, List<UserStory> stories) {
             this.sessionId = sessionId;
             this.goal = goal;
             this.stories = stories;
         }
+
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+        public String getGoal() { return goal; }
+        public void setGoal(String goal) { this.goal = goal; }
+
+        public List<UserStory> getStories() { return stories; }
+        public void setStories(List<UserStory> stories) { this.stories = stories; }
     }
 
     public static class UserStory {
-        public Long id;
-        public String title;
-        public String description;
-        public String status;
+        private Long id;
+        private String title;
+        private String description;
+        private String status;
+
+        public UserStory() {
+        }
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
     }
 }
