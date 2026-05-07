@@ -34,7 +34,7 @@ public class SprintController {
         public SprintSession(String sessionId, String goal, List<UserStory> stories) {
             this.sessionId = sessionId;
             this.goal = goal;
-            this.stories = stories;
+            this.stories = stories == null ? new ArrayList<>() : new ArrayList<>(stories);
         }
 
         public String getSessionId() { return sessionId; }
@@ -43,8 +43,13 @@ public class SprintController {
         public String getGoal() { return goal; }
         public void setGoal(String goal) { this.goal = goal; }
 
-        public List<UserStory> getStories() { return stories; }
-        public void setStories(List<UserStory> stories) { this.stories = stories; }
+        public List<UserStory> getStories() { 
+            return stories == null ? new ArrayList<>() : new ArrayList<>(stories); 
+        }
+        
+        public void setStories(List<UserStory> stories) { 
+            this.stories = stories == null ? new ArrayList<>() : new ArrayList<>(stories); 
+        }
     }
 
     public static class UserStory {
