@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./sprint-planner.component.css']
 })
 export class SprintPlannerComponent implements OnInit {
+  sessionId: string | null = null; 
   sprintGoal: string = '';
   stories: UserStory[] = [];
 
@@ -28,12 +29,26 @@ export class SprintPlannerComponent implements OnInit {
 
   ngOnInit() {
     const saved = this.sprintService.getData();
+    this.sessionId = saved.sessionId || null;
     this.sprintGoal = saved.goal;
     this.stories = saved.stories.map(story => ({
       ...story,
       status: story.status || 'To Do'
     }));
     this.goalForm.patchValue({ goal: this.sprintGoal });
+  }
+
+  createSharedSession() {
+    this.sprintService.createSharedSession().subscribe({
+      next: (session) => {
+        this.sessionId = session.sessionId!;
+        this.sprintGoal = session.goal;
+        this.stories = session.stories;
+        this.goalForm.patchValue({ goal: this.sprintGoal });
+        this.persist();
+      },
+      error: (err) => console.error('Failed to create session', err)
+    });
   }
 
   updateGoal() {
@@ -48,7 +63,7 @@ export class SprintPlannerComponent implements OnInit {
         status: 'To Do',
         ...this.storyForm.value
       };
-        this.stories.push(newStory);
+      this.stories.push(newStory);
       this.storyForm.reset();
       this.persist();
     }
@@ -56,6 +71,7 @@ export class SprintPlannerComponent implements OnInit {
 
   private persist() {
     this.sprintService.saveData({
+      sessionId: this.sessionId || undefined,
       goal: this.sprintGoal,
       stories: this.stories
     });
@@ -73,10 +89,7 @@ export class SprintPlannerComponent implements OnInit {
     if (this.stories.length === 0) {
       return 0;
     }
-
     const doneStories = this.stories.filter(story => story.status === 'Done').length;
     return Math.round((doneStories / this.stories.length) * 100);
   }
-
-
 }

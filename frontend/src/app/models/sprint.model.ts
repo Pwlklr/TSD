@@ -6,10 +6,10 @@ export interface UserStory {
   title: string;
   description?: string;
   status: StoryStatus;
-
 }
 
 export interface SprintData {
+  sessionId?: string; 
   goal: string;
   stories: UserStory[];
 }

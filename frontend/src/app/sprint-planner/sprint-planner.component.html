@@ -1,4 +1,19 @@
 <div class="container">
+  <div class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+    <h2 style="margin-top: 0;">Collaboration Hub</h2>
+    <div *ngIf="sessionId; else noSession">
+      <p style="font-size: 1.2em; color: #0056b3;">
+        <strong>Session Active!</strong> Code: <code>{{ sessionId }}</code>
+      </p>
+      <p style="font-size: 0.9em; color: #666;">Share this code with teammates to collaborate.</p>
+    </div>
+    <ng-template #noSession>
+      <p>Start a shared session to collaborate with your team.</p>
+      <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+        Create Shared Sprint
+      </button>
+    </ng-template>
+  </div>
   <div class="progress-section">
     <div class="progress-header">
       <h3>Sprint Progress</h3>
