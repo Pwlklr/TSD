@@ -22,4 +22,8 @@ export class SprintService {
     const data = localStorage.getItem(this.STORAGE_KEY);
     return data ? JSON.parse(data) : { goal: '', stories: [] };
   }
+
+  joinSession(sessionId: string): Observable<SprintData> {
+    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}`);
+  }
 }

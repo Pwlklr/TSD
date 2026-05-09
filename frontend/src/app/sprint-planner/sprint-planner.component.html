@@ -12,6 +12,20 @@
       <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
         Create Shared Sprint
       </button>
+
+      <hr>
+
+      <p>Or join an existing session:</p>
+      <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()">
+        <input formControlName="sessionCode" placeholder="Enter session code...">
+        <button type="submit" [disabled]="joinForm.invalid">
+          Join Sprint
+        </button>
+      </form>
+
+      <p *ngIf="joinError" style="color: red;">
+        {{ joinError }}
+      </p>
     </ng-template>
   </div>
   <div class="progress-section">
