@@ -11,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/sprints")
-@CrossOrigin(origins = "*") 
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class SprintController {
 
     private final Map<String, SprintSession> sprintStorage = new ConcurrentHashMap<>();
@@ -22,6 +22,7 @@ public class SprintController {
         SprintSession newSession = new SprintSession(sessionId, "", new ArrayList<>());
         sprintStorage.put(sessionId, newSession);
         
+        System.out.println("Utworzono nowa sesje: " + sessionId);
         return newSession;
     }
 
@@ -32,12 +33,18 @@ public class SprintController {
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Sprint session not found");
         }
-
         return session;
     }
 
-
-    
-
-    
+    @PutMapping("/{sessionId}")
+    public SprintSession updateSprintSession(@PathVariable String sessionId, @RequestBody SprintSession updatedSession) {
+        if (sprintStorage.containsKey(sessionId)) {
+            updatedSession.setSessionId(sessionId);
+            sprintStorage.put(sessionId, updatedSession);
+            
+            System.out.println("Zaktualizowano sesje: " + sessionId + " | Ilosc UserStories: " + updatedSession.getStories().size());
+            return updatedSession;
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Sprint session not found");
+    }
 }

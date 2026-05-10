@@ -1,5 +1,9 @@
 <div class="container">
-  <div class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+  <div class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; position: relative;">
+    <button *ngIf="sessionId" (click)="leaveSession()" style="position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
+      Leave Session
+    </button>
+
     <h2 style="margin-top: 0;">Collaboration Hub</h2>
     <div *ngIf="sessionId; else noSession">
       <p style="font-size: 1.2em; color: #0056b3;">
@@ -9,31 +13,27 @@
     </div>
     <ng-template #noSession>
       <p>Start a shared session to collaborate with your team.</p>
-      <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-        Create Shared Sprint
-      </button>
-
-      <hr>
-
-      <p>Or join an existing session:</p>
-      <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()">
-        <input formControlName="sessionCode" placeholder="Enter session code...">
-        <button type="submit" [disabled]="joinForm.invalid">
-          Join Sprint
+      <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+        <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+          Create Shared Sprint
         </button>
-      </form>
-
-      <p *ngIf="joinError" style="color: red;">
-        {{ joinError }}
-      </p>
+        <span style="color: #666;">or</span>
+        <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()" style="display: flex; gap: 10px;">
+          <input formControlName="sessionCode" placeholder="Enter session code..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+          <button type="submit" [disabled]="joinForm.invalid" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+            Join
+          </button>
+        </form>
+      </div>
+      <p *ngIf="joinError" style="color: red; margin-top: 10px;">{{ joinError }}</p>
     </ng-template>
   </div>
+
   <div class="progress-section">
     <div class="progress-header">
       <h3>Sprint Progress</h3>
       <span>{{ progressPercentage }}%</span>
     </div>
-
     <div class="progress-bar">
       <div class="progress-fill" [style.width.%]="progressPercentage"></div>
     </div>
@@ -50,7 +50,7 @@
   <hr>
 
   <section>
-    <h2>User Stories</h2>
+    <h2>User Stories & Product Backlog</h2>
     <form [formGroup]="storyForm" (ngSubmit)="addStory()">
       <input formControlName="title" placeholder="Story Title">
       <textarea formControlName="description" placeholder="Optional Description"></textarea>
@@ -58,22 +58,38 @@
     </form>
 
     <ul>
-      <li *ngFor="let story of stories" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">        <strong>{{ story.title }}</strong>
+      <li *ngFor="let story of stories; trackBy: trackByStory" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">        
+        <strong>{{ story.title }}</strong>
         <span class="status-badge">{{ story.status }}</span>
-        <p *ngIf="story.description">{{ story.description }}</p>
-
-        <div class="status-container">
-          <span class="status-label">Status</span>
-          <select class="status-select"
-                  [value]="story.status"
-                  (change)="changeStatus(story.id, $any($event.target).value)">
+        
+        <div class="status-container" style="margin: 10px 0;">
+          <select [value]="story.status" (change)="changeStatus(story.id, $any($event.target).value)">
             <option value="To Do">To Do</option>
             <option value="In Progress">In Progress</option>
             <option value="Done">Done</option>
           </select>
         </div>
-      </li>
 
+        <div style="background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
+          <h4 style="margin: 0 0 10px 0; font-size: 0.9em;">Product Backlog Items:</h4>
+          <ul style="list-style: none; padding: 0;">
+            <li *ngFor="let item of story.backlogItems; trackBy: trackByItem" 
+                [ngClass]="(item.status || 'To Do').toLowerCase().replace(' ', '-')"
+                style="margin-bottom: 5px; padding: 5px 10px; display: flex; justify-content: space-between; border-left: 5px solid; border-radius: 3px; background: #fafafa;">
+              <span>{{ item.title }}</span>
+              <select [value]="item.status" (change)="changeBacklogItemStatus(story.id, item.id, $any($event.target).value)">
+                <option value="To Do">To Do</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+              </select>
+            </li>
+          </ul>
+          <div style="display: flex; gap: 5px; margin-top: 10px;">
+            <input #pbiTitle placeholder="New PBI..." style="flex: 1; padding: 4px;">
+            <button (click)="addBacklogItemToStory(story.id, pbiTitle.value); pbiTitle.value=''">Add</button>
+          </div>
+        </div>
+      </li>
     </ul>
   </section>
 </div>
