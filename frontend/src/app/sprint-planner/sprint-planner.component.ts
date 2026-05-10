@@ -30,7 +30,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   currentUser: SessionUser;
 
   private pollingSubscription?: Subscription;
-  private presenceSubscription?: Subscription;
 
   constructor(
     private fb: FormBuilder,
@@ -79,24 +78,16 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
     if (this.sessionId) {
       this.startPolling();
-      this.startPresence();
     }
   }
 
   ngOnDestroy() {
     this.stopPolling();
-    this.stopPresence();
   }
 
   private stopPolling() {
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
-    }
-  }
-
-  private stopPresence() {
-    if (this.presenceSubscription) {
-      this.presenceSubscription.unsubscribe();
     }
   }
 
@@ -109,8 +100,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     }
 
     this.stopPolling();
-    this.stopPresence();
-
     this.sprintService.clearData();
 
     this.sessionId = null;
@@ -144,9 +133,9 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       next: (session) => {
         this.sessionId = session.sessionId!;
         this.sprintGoal = session.goal || '';
-        this.stories = (session.stories || []).map(s => ({
-          ...s,
-          backlogItems: s.backlogItems || []
+        this.stories = (session.stories || []).map((story: UserStory) => ({
+          ...story,
+          backlogItems: story.backlogItems || []
         }));
         this.activeUsers = session.activeUsers || [];
 
@@ -158,12 +147,10 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
         this.persist();
         this.startPolling();
-        this.startPresence();
         this.cdr.detectChanges();
       },
       error: () => {
         this.stopPolling();
-        this.stopPresence();
 
         this.sessionId = null;
         this.sprintGoal = '';
@@ -194,7 +181,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
         this.persist();
         this.startPolling();
-        this.startPresence();
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Failed to create session', err)
@@ -216,9 +202,9 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       next: (session) => {
         this.sessionId = session.sessionId!;
         this.sprintGoal = session.goal || '';
-        this.stories = (session.stories || []).map(s => ({
-          ...s,
-          backlogItems: s.backlogItems || []
+        this.stories = (session.stories || []).map((story: UserStory) => ({
+          ...story,
+          backlogItems: story.backlogItems || []
         }));
         this.activeUsers = session.activeUsers || [];
 
@@ -230,10 +216,9 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
         this.persist();
         this.startPolling();
-        this.startPresence();
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.joinError = 'Session not found. Check the code and try again.';
         this.cdr.detectChanges();
       }
@@ -315,7 +300,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       return 0;
     }
 
-    const done = this.stories.filter(s => s.status === 'Done').length;
+    const done = this.stories.filter(story => story.status === 'Done').length;
     return Math.round((done / this.stories.length) * 100);
   }
 
@@ -348,13 +333,13 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     }
 
     return {
-      userId: userId,
-      displayName: displayName
+      userId,
+      displayName
     };
   }
+
   private askForDisplayName(): boolean {
     const currentName = this.currentUser.displayName || '';
-
     const enteredName = window.prompt('Enter your display name:', currentName);
 
     if (enteredName === null) {
@@ -375,20 +360,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  private startPresence() {
-    this.stopPresence();
-
-    if (!this.sessionId) {
-      return;
-    }
-
-    this.sendPresence();
-
-    this.presenceSubscription = interval(5000).subscribe(() => {
-      this.sendPresence();
-    });
-  }
-
   private sendPresence() {
     if (!this.sessionId) {
       return;
@@ -406,64 +377,76 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     console.log('Sending presence:', this.sessionId, userToSend);
 
     this.sprintService.updatePresence(this.sessionId, userToSend).subscribe({
-      next: (session) => {
-        console.log('Presence response:', session);
-        this.activeUsers = session.activeUsers || [];
-        this.cdr.detectChanges();
+      next: () => {
+        console.log('Presence updated');
       },
       error: (err) => {
         console.error('Presence update failed', err);
       }
     });
   }
+
   private startPolling() {
     this.stopPolling();
 
+    this.pollSession();
+
     this.pollingSubscription = interval(3000).subscribe(() => {
-      if (this.sessionId) {
-        this.sprintService.getSharedSession(this.sessionId).subscribe({
-          next: (session) => {
-            if (session) {
-              let hasChanged = false;
+      this.pollSession();
+    });
+  }
 
-              const incomingStories = JSON.stringify(session.stories || []);
-              const localStories = JSON.stringify(this.stories || []);
+  private pollSession() {
+    if (!this.sessionId) {
+      return;
+    }
 
-              if (incomingStories !== localStories) {
-                this.stories = (session.stories || []).map(s => ({
-                  ...s,
-                  backlogItems: s.backlogItems || []
-                }));
-                hasChanged = true;
-              }
+    this.sendPresence();
 
-              const incomingGoal = session.goal || '';
+    this.sprintService.getSharedSession(this.sessionId).subscribe({
+      next: (session) => {
+        if (session) {
+          let hasChanged = false;
 
-              if (this.sprintGoal !== incomingGoal) {
-                this.sprintGoal = incomingGoal;
-                hasChanged = true;
+          const incomingStories = JSON.stringify(session.stories || []);
+          const localStories = JSON.stringify(this.stories || []);
 
-                const goalCtrl = this.goalForm.get('goal');
+          if (incomingStories !== localStories) {
+            this.stories = (session.stories || []).map((story: UserStory) => ({
+              ...story,
+              backlogItems: story.backlogItems || []
+            }));
+            hasChanged = true;
+          }
 
-                if (goalCtrl && goalCtrl.pristine) {
-                  this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
-                }
-              }
+          const incomingGoal = session.goal || '';
 
-              const incomingActiveUsers = JSON.stringify(session.activeUsers || []);
-              const localActiveUsers = JSON.stringify(this.activeUsers || []);
+          if (this.sprintGoal !== incomingGoal) {
+            this.sprintGoal = incomingGoal;
+            hasChanged = true;
 
-              if (incomingActiveUsers !== localActiveUsers) {
-                this.activeUsers = session.activeUsers || [];
-                hasChanged = true;
-              }
+            const goalCtrl = this.goalForm.get('goal');
 
-              if (hasChanged) {
-                this.cdr.detectChanges();
-              }
+            if (goalCtrl && goalCtrl.pristine) {
+              this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
             }
           }
-        });
+
+          const incomingActiveUsers = JSON.stringify(session.activeUsers || []);
+          const localActiveUsers = JSON.stringify(this.activeUsers || []);
+
+          if (incomingActiveUsers !== localActiveUsers) {
+            this.activeUsers = session.activeUsers || [];
+            hasChanged = true;
+          }
+
+          if (hasChanged) {
+            this.cdr.detectChanges();
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Failed to poll session', err);
       }
     });
   }
