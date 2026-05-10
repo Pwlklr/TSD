@@ -25,6 +25,11 @@ public class SprintSession {
     public String getGoal() { return goal; }
     public void setGoal(String goal) { this.goal = goal; }
 
-    public List<UserStory> getStories() { return stories; }
-    public void setStories(List<UserStory> stories) { this.stories = stories; }
+    public List<UserStory> getStories() { 
+        return stories == null ? new ArrayList<>() : new ArrayList<>(stories); 
+    }
+    
+    public void setStories(List<UserStory> stories) { 
+        this.stories = stories == null ? new ArrayList<>() : new ArrayList<>(stories); 
+    }
 }

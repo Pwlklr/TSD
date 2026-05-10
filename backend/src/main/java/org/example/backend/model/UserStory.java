@@ -27,6 +27,11 @@ public class UserStory {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public List<ProductBacklogItem> getBacklogItems() { return backlogItems; }
-    public void setBacklogItems(List<ProductBacklogItem> backlogItems) { this.backlogItems = backlogItems; }
+    public List<ProductBacklogItem> getBacklogItems() { 
+        return backlogItems == null ? new ArrayList<>() : new ArrayList<>(backlogItems); 
+    }
+    
+    public void setBacklogItems(List<ProductBacklogItem> backlogItems) { 
+        this.backlogItems = backlogItems == null ? new ArrayList<>() : new ArrayList<>(backlogItems); 
+    }
 }
