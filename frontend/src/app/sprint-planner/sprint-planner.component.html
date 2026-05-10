@@ -1,5 +1,17 @@
 <div class="container">
-  <div class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; position: relative;">
+  <div *ngIf="isLoadingSession" style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+    Loading session...
+  </div>
+
+  <div *ngIf="sessionNotFound" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+    <h2>Session Not Found</h2>
+    <p>The session link or code is invalid or expired.</p>
+    <button type="button" (click)="leaveSession()">
+      Back to start
+    </button>
+  </div>
+
+  <div *ngIf="!sessionNotFound" class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; position: relative;">
     <button *ngIf="sessionId" (click)="leaveSession()" style="position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
       Leave Session
     </button>
@@ -10,6 +22,9 @@
         <strong>Session Active!</strong> Code: <code>{{ sessionId }}</code>
       </p>
       <p style="font-size: 0.9em; color: #666;">Share this code with teammates to collaborate.</p>
+      <p style="font-size: 0.85em; color: #666;">
+        Direct link: <code>/session/{{ sessionId }}</code>
+      </p>
     </div>
     <ng-template #noSession>
       <p>Start a shared session to collaborate with your team.</p>
@@ -29,7 +44,7 @@
     </ng-template>
   </div>
 
-  <div class="progress-section">
+  <div *ngIf="!sessionNotFound" class="progress-section">
     <div class="progress-header">
       <h3>Sprint Progress</h3>
       <span>{{ progressPercentage }}%</span>
@@ -39,7 +54,7 @@
     </div>
   </div>
 
-  <section>
+  <section *ngIf="!sessionNotFound">
     <h2>Sprint Goal</h2>
     <form [formGroup]="goalForm" (ngSubmit)="updateGoal()">
       <input formControlName="goal" placeholder="Enter sprint goal...">
@@ -47,9 +62,9 @@
     </form>
     <p class="display-goal"><strong>Current Goal:</strong> {{ sprintGoal || 'No goal set.' }}</p>
   </section>
-  <hr>
+  <hr *ngIf="!sessionNotFound">
 
-  <section>
+  <section *ngIf="!sessionNotFound">
     <h2>User Stories & Product Backlog</h2>
     <form [formGroup]="storyForm" (ngSubmit)="addStory()">
       <input formControlName="title" placeholder="Story Title">
@@ -58,10 +73,10 @@
     </form>
 
     <ul>
-      <li *ngFor="let story of stories; trackBy: trackByStory" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">        
+      <li *ngFor="let story of stories; trackBy: trackByStory" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">
         <strong>{{ story.title }}</strong>
         <span class="status-badge">{{ story.status }}</span>
-        
+
         <div class="status-container" style="margin: 10px 0;">
           <select [value]="story.status" (change)="changeStatus(story.id, $any($event.target).value)">
             <option value="To Do">To Do</option>
@@ -73,7 +88,7 @@
         <div style="background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
           <h4 style="margin: 0 0 10px 0; font-size: 0.9em;">Product Backlog Items:</h4>
           <ul style="list-style: none; padding: 0;">
-            <li *ngFor="let item of story.backlogItems; trackBy: trackByItem" 
+            <li *ngFor="let item of story.backlogItems; trackBy: trackByItem"
                 [ngClass]="(item.status || 'To Do').toLowerCase().replace(' ', '-')"
                 style="margin-bottom: 5px; padding: 5px 10px; display: flex; justify-content: space-between; border-left: 5px solid; border-radius: 3px; background: #fafafa;">
               <span>{{ item.title }}</span>

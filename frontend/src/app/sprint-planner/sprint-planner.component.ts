@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../services/sprint.service';
 import { UserStory, ProductBacklogItem } from '../models/sprint.model';
 import { CommonModule } from '@angular/common';
@@ -13,7 +14,7 @@ import { interval, Subscription } from 'rxjs';
   styleUrls: ['./sprint-planner.component.css']
 })
 export class SprintPlannerComponent implements OnInit, OnDestroy {
-  sessionId: string | null = null; 
+  sessionId: string | null = null;
   sprintGoal: string = '';
   stories: UserStory[] = [];
 
@@ -22,13 +23,18 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   joinForm: FormGroup;
   joinError: string = '';
 
+  sessionNotFound: boolean = false;
+  isLoadingSession: boolean = false;
+
   private pollingSubscription?: Subscription;
 
   // Wstrzykujemy ChangeDetectorRef, aby wymusić odświeżanie UI
   constructor(
-    private fb: FormBuilder, 
+    private fb: FormBuilder,
+
     private sprintService: SprintService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
   ) {
     this.goalForm = this.fb.group({ goal: ['', Validators.required] });
     this.storyForm = this.fb.group({
@@ -41,6 +47,13 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    const sessionIdFromUrl = this.route.snapshot.paramMap.get('id');
+
+    if (sessionIdFromUrl) {
+      this.loadSessionFromUrl(sessionIdFromUrl);
+      return;
+    }
+
     const saved = this.sprintService.getData();
     this.sessionId = saved.sessionId || null;
     this.sprintGoal = saved.goal || '';
@@ -74,7 +87,53 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     this.stories = [];
     this.goalForm.reset();
     this.joinError = '';
+
+    this.sessionNotFound = false;
+    this.isLoadingSession = false;
+
     this.cdr.detectChanges();
+  }
+
+  private loadSessionFromUrl(sessionIdFromUrl: string) {
+    const code = sessionIdFromUrl.trim().toUpperCase();
+
+    if (!/^[A-Za-z0-9]{6}$/.test(code)) {
+      this.sessionNotFound = true;
+      this.joinError = 'Invalid session code format.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.isLoadingSession = true;
+    this.sessionNotFound = false;
+    this.joinError = '';
+
+    this.sprintService.joinSession(code).subscribe({
+      next: (session) => {
+        this.sessionId = session.sessionId!;
+        this.sprintGoal = session.goal || '';
+        this.stories = (session.stories || []).map(s => ({...s, backlogItems: s.backlogItems || []}));
+        this.goalForm.patchValue({ goal: this.sprintGoal });
+
+        this.joinError = '';
+        this.sessionNotFound = false;
+        this.isLoadingSession = false;
+
+        this.persist();
+        this.startPolling();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.stopPolling();
+        this.sessionId = null;
+        this.sprintGoal = '';
+        this.stories = [];
+        this.joinError = 'Session not found. Check the code and try again.';
+        this.sessionNotFound = true;
+        this.isLoadingSession = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   createSharedSession() {
@@ -103,6 +162,10 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
         this.stories = (session.stories || []).map(s => ({...s, backlogItems: s.backlogItems || []}));
         this.goalForm.patchValue({ goal: this.sprintGoal });
         this.joinError = '';
+
+        this.sessionNotFound = false;
+        this.isLoadingSession = false;
+
         this.persist();
         this.startPolling();
         this.cdr.detectChanges();
@@ -116,7 +179,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   updateGoal() {
     this.sprintGoal = this.goalForm.value.goal;
-    this.goalForm.markAsPristine(); 
+    this.goalForm.markAsPristine();
     this.persist();
     this.cdr.detectChanges();
   }
@@ -192,16 +255,16 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
                 this.stories = (session.stories || []).map(s => ({...s, backlogItems: s.backlogItems || []}));
                 hasChanged = true;
               }
-              
+
               const incomingGoal = session.goal || '';
               if (this.sprintGoal !== incomingGoal) {
-                  this.sprintGoal = incomingGoal;
-                  hasChanged = true;
+                this.sprintGoal = incomingGoal;
+                hasChanged = true;
 
-                  const goalCtrl = this.goalForm.get('goal');
-                  if (goalCtrl && goalCtrl.pristine) {
-                    this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
-                  }
+                const goalCtrl = this.goalForm.get('goal');
+                if (goalCtrl && goalCtrl.pristine) {
+                  this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
+                }
               }
 
               if (hasChanged) {
@@ -215,13 +278,13 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   private persist() {
-    const dataToSave = { 
-        sessionId: this.sessionId || undefined, 
-        goal: this.sprintGoal, 
-        stories: this.stories 
+    const dataToSave = {
+      sessionId: this.sessionId || undefined,
+      goal: this.sprintGoal,
+      stories: this.stories
     };
     this.sprintService.saveData(dataToSave);
-    
+
     if (this.sessionId) {
       this.sprintService.updateSharedSession(this.sessionId, dataToSave).subscribe({
         next: () => {
@@ -229,7 +292,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         },
         error: (err) => {
-            console.error('CRITICAL: Zapis na serwerze nie powiódł się!', err);
+          console.error('CRITICAL: Zapis na serwerze nie powiódł się!', err);
         }
       });
     }
