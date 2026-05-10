@@ -1,8 +1,18 @@
 import { Injectable } from '@angular/core';
-import { SprintData, UserStory } from '../models/sprint.model';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { SprintData } from '../models/sprint.model';
+
 @Injectable({ providedIn: 'root' })
 export class SprintService {
   private STORAGE_KEY = 'sprint_planner_data';
+  private apiUrl = 'http://localhost:8080/api/sprints';
+
+  constructor(private http: HttpClient) {}
+
+  createSharedSession(): Observable<SprintData> {
+    return this.http.post<SprintData>(this.apiUrl, {});
+  }
 
   saveData(data: SprintData) {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
