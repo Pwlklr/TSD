@@ -12,18 +12,24 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./sprint-planner.component.css']
 })
 export class SprintPlannerComponent implements OnInit {
-  sessionId: string | null = null; 
+  sessionId: string | null = null;
   sprintGoal: string = '';
   stories: UserStory[] = [];
 
   goalForm: FormGroup;
   storyForm: FormGroup;
+  joinForm: FormGroup;
+
+  joinError: string = '';
 
   constructor(private fb: FormBuilder, private sprintService: SprintService) {
     this.goalForm = this.fb.group({ goal: ['', Validators.required] });
     this.storyForm = this.fb.group({
       title: ['', Validators.required],
       description: ['']
+    });
+    this.joinForm = this.fb.group({
+      sessionCode: ['', Validators.required]
     });
   }
 
@@ -45,9 +51,33 @@ export class SprintPlannerComponent implements OnInit {
         this.sprintGoal = session.goal;
         this.stories = session.stories;
         this.goalForm.patchValue({ goal: this.sprintGoal });
+        this.joinError = '';
         this.persist();
       },
       error: (err) => console.error('Failed to create session', err)
+    });
+  }
+
+  joinSharedSession() {
+    if (this.joinForm.invalid) {
+      return;
+    }
+
+    const code = this.joinForm.value.sessionCode.trim().toUpperCase();
+
+    this.sprintService.joinSession(code).subscribe({
+      next: (session) => {
+        this.sessionId = session.sessionId!;
+        this.sprintGoal = session.goal;
+        this.stories = session.stories;
+        this.goalForm.patchValue({ goal: this.sprintGoal });
+        this.joinError = '';
+        this.persist();
+      },
+      error: (err) => {
+        console.error('Failed to join session', err);
+        this.joinError = 'Session not found. Check the code and try again.';
+      }
     });
   }
 
