@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { SprintData } from '../models/sprint.model';
+import { SessionUser, SprintData } from '../models/sprint.model';
 
 @Injectable({ providedIn: 'root' })
 export class SprintService {
@@ -37,5 +37,13 @@ export class SprintService {
 
   updateSharedSession(sessionId: string, data: SprintData): Observable<SprintData> {
     return this.http.put<SprintData>(`${this.apiUrl}/${sessionId}`, data);
+  }
+
+  updatePresence(sessionId: string, user: SessionUser): Observable<SprintData> {
+    return this.http.post<SprintData>(`${this.apiUrl}/${sessionId}/presence`, user);
+  }
+
+  removePresence(sessionId: string, userId: string): Observable<SprintData> {
+    return this.http.delete<SprintData>(`${this.apiUrl}/${sessionId}/presence/${userId}`);
   }
 }

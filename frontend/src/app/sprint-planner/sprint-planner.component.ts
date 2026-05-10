@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../services/sprint.service';
-import { UserStory, ProductBacklogItem } from '../models/sprint.model';
+import { UserStory, ProductBacklogItem, SessionUser } from '../models/sprint.model';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
 
@@ -26,35 +26,46 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   sessionNotFound: boolean = false;
   isLoadingSession: boolean = false;
 
-  private pollingSubscription?: Subscription;
+  activeUsers: SessionUser[] = [];
+  currentUser: SessionUser;
 
-  // Wstrzykujemy ChangeDetectorRef, aby wymusić odświeżanie UI
+  private pollingSubscription?: Subscription;
+  private presenceSubscription?: Subscription;
+
   constructor(
     private fb: FormBuilder,
-
     private sprintService: SprintService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute
   ) {
     this.goalForm = this.fb.group({ goal: ['', Validators.required] });
+
     this.storyForm = this.fb.group({
       title: ['', Validators.required],
       description: ['']
     });
+
     this.joinForm = this.fb.group({
       sessionCode: ['', Validators.required]
     });
+
+    this.currentUser = this.getOrCreateCurrentUser();
   }
 
   ngOnInit() {
     const sessionIdFromUrl = this.route.snapshot.paramMap.get('id');
 
     if (sessionIdFromUrl) {
+      if (!this.askForDisplayName()) {
+        return;
+      }
+
       this.loadSessionFromUrl(sessionIdFromUrl);
       return;
     }
 
     const saved = this.sprintService.getData();
+
     this.sessionId = saved.sessionId || null;
     this.sprintGoal = saved.goal || '';
     this.stories = (saved.stories || []).map((story: UserStory) => ({
@@ -62,15 +73,19 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       status: story.status || 'To Do',
       backlogItems: story.backlogItems || []
     }));
+    this.activeUsers = saved.activeUsers || [];
+
     this.goalForm.patchValue({ goal: this.sprintGoal });
 
     if (this.sessionId) {
       this.startPolling();
+      this.startPresence();
     }
   }
 
   ngOnDestroy() {
     this.stopPolling();
+    this.stopPresence();
   }
 
   private stopPolling() {
@@ -79,12 +94,29 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     }
   }
 
+  private stopPresence() {
+    if (this.presenceSubscription) {
+      this.presenceSubscription.unsubscribe();
+    }
+  }
+
   leaveSession() {
+    const sessionToLeave = this.sessionId;
+    const userToRemove = this.currentUser.userId;
+
+    if (sessionToLeave) {
+      this.sprintService.removePresence(sessionToLeave, userToRemove).subscribe();
+    }
+
     this.stopPolling();
+    this.stopPresence();
+
     this.sprintService.clearData();
+
     this.sessionId = null;
     this.sprintGoal = '';
     this.stories = [];
+    this.activeUsers = [];
     this.goalForm.reset();
     this.joinError = '';
 
@@ -112,7 +144,12 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       next: (session) => {
         this.sessionId = session.sessionId!;
         this.sprintGoal = session.goal || '';
-        this.stories = (session.stories || []).map(s => ({...s, backlogItems: s.backlogItems || []}));
+        this.stories = (session.stories || []).map(s => ({
+          ...s,
+          backlogItems: s.backlogItems || []
+        }));
+        this.activeUsers = session.activeUsers || [];
+
         this.goalForm.patchValue({ goal: this.sprintGoal });
 
         this.joinError = '';
@@ -121,30 +158,43 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
         this.persist();
         this.startPolling();
+        this.startPresence();
         this.cdr.detectChanges();
       },
       error: () => {
         this.stopPolling();
+        this.stopPresence();
+
         this.sessionId = null;
         this.sprintGoal = '';
         this.stories = [];
+        this.activeUsers = [];
         this.joinError = 'Session not found. Check the code and try again.';
         this.sessionNotFound = true;
         this.isLoadingSession = false;
+
         this.cdr.detectChanges();
       }
     });
   }
 
   createSharedSession() {
+    if (!this.askForDisplayName()) {
+      return;
+    }
+
     this.sprintService.createSharedSession().subscribe({
       next: (session) => {
         this.sessionId = session.sessionId!;
         this.sprintGoal = session.goal || '';
         this.stories = session.stories || [];
+        this.activeUsers = session.activeUsers || [];
+
         this.goalForm.patchValue({ goal: this.sprintGoal });
+
         this.persist();
         this.startPolling();
+        this.startPresence();
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Failed to create session', err)
@@ -152,14 +202,26 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   joinSharedSession() {
-    if (this.joinForm.invalid) return;
+    if (this.joinForm.invalid) {
+      return;
+    }
+
+    if (!this.askForDisplayName()) {
+      return;
+    }
+
     const code = this.joinForm.value.sessionCode.trim().toUpperCase();
 
     this.sprintService.joinSession(code).subscribe({
       next: (session) => {
         this.sessionId = session.sessionId!;
         this.sprintGoal = session.goal || '';
-        this.stories = (session.stories || []).map(s => ({...s, backlogItems: s.backlogItems || []}));
+        this.stories = (session.stories || []).map(s => ({
+          ...s,
+          backlogItems: s.backlogItems || []
+        }));
+        this.activeUsers = session.activeUsers || [];
+
         this.goalForm.patchValue({ goal: this.sprintGoal });
         this.joinError = '';
 
@@ -168,6 +230,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
         this.persist();
         this.startPolling();
+        this.startPresence();
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -192,6 +255,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
         backlogItems: [],
         ...this.storyForm.value
       };
+
       this.stories.push(newStory);
       this.storyForm.reset();
       this.persist();
@@ -201,6 +265,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   changeStatus(storyId: number, status: any) {
     const story = this.stories.find(s => s.id === storyId);
+
     if (story) {
       story.status = status;
       this.persist();
@@ -209,11 +274,23 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   addBacklogItemToStory(storyId: number, itemTitle: string) {
-    if (!itemTitle || !itemTitle.trim()) return;
+    if (!itemTitle || !itemTitle.trim()) {
+      return;
+    }
+
     const story = this.stories.find(s => s.id === storyId);
+
     if (story) {
-      if (!story.backlogItems) story.backlogItems = [];
-      story.backlogItems.push({ id: Date.now(), title: itemTitle.trim(), status: 'To Do' });
+      if (!story.backlogItems) {
+        story.backlogItems = [];
+      }
+
+      story.backlogItems.push({
+        id: Date.now(),
+        title: itemTitle.trim(),
+        status: 'To Do'
+      });
+
       this.persist();
       this.cdr.detectChanges();
     }
@@ -221,8 +298,10 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   changeBacklogItemStatus(storyId: number, itemId: number, status: any) {
     const story = this.stories.find(s => s.id === storyId);
+
     if (story && story.backlogItems) {
       const item = story.backlogItems.find(i => i.id === itemId);
+
       if (item) {
         item.status = status;
         this.persist();
@@ -232,16 +311,114 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   get progressPercentage(): number {
-    if (this.stories.length === 0) return 0;
+    if (this.stories.length === 0) {
+      return 0;
+    }
+
     const done = this.stories.filter(s => s.status === 'Done').length;
     return Math.round((done / this.stories.length) * 100);
   }
 
-  trackByStory(index: number, story: UserStory) { return story.id; }
-  trackByItem(index: number, item: ProductBacklogItem) { return item.id; }
+  trackByStory(index: number, story: UserStory) {
+    return story.id;
+  }
 
+  trackByItem(index: number, item: ProductBacklogItem) {
+    return item.id;
+  }
+
+  private getOrCreateCurrentUser(): SessionUser {
+    let userId = localStorage.getItem('sprint_user_id');
+
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        userId = crypto.randomUUID();
+      } else {
+        userId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      }
+
+      localStorage.setItem('sprint_user_id', userId);
+    }
+
+    let displayName = localStorage.getItem('sprint_user_name');
+
+    if (!displayName || displayName === 'undefined' || displayName === 'null') {
+      displayName = `Anonymous ${userId.substring(0, 4).toUpperCase()}`;
+      localStorage.setItem('sprint_user_name', displayName);
+    }
+
+    return {
+      userId: userId,
+      displayName: displayName
+    };
+  }
+  private askForDisplayName(): boolean {
+    const currentName = this.currentUser.displayName || '';
+
+    const enteredName = window.prompt('Enter your display name:', currentName);
+
+    if (enteredName === null) {
+      return false;
+    }
+
+    const trimmedName = enteredName.trim();
+
+    if (!trimmedName) {
+      this.joinError = 'Display name is required.';
+      this.cdr.detectChanges();
+      return false;
+    }
+
+    this.currentUser.displayName = trimmedName;
+    localStorage.setItem('sprint_user_name', trimmedName);
+
+    return true;
+  }
+
+  private startPresence() {
+    this.stopPresence();
+
+    if (!this.sessionId) {
+      return;
+    }
+
+    this.sendPresence();
+
+    this.presenceSubscription = interval(5000).subscribe(() => {
+      this.sendPresence();
+    });
+  }
+
+  private sendPresence() {
+    if (!this.sessionId) {
+      return;
+    }
+
+    if (!this.currentUser.userId) {
+      this.currentUser = this.getOrCreateCurrentUser();
+    }
+
+    const userToSend: SessionUser = {
+      userId: this.currentUser.userId,
+      displayName: this.currentUser.displayName || 'Anonymous'
+    };
+
+    console.log('Sending presence:', this.sessionId, userToSend);
+
+    this.sprintService.updatePresence(this.sessionId, userToSend).subscribe({
+      next: (session) => {
+        console.log('Presence response:', session);
+        this.activeUsers = session.activeUsers || [];
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Presence update failed', err);
+      }
+    });
+  }
   private startPolling() {
     this.stopPolling();
+
     this.pollingSubscription = interval(3000).subscribe(() => {
       if (this.sessionId) {
         this.sprintService.getSharedSession(this.sessionId).subscribe({
@@ -251,20 +428,34 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
               const incomingStories = JSON.stringify(session.stories || []);
               const localStories = JSON.stringify(this.stories || []);
+
               if (incomingStories !== localStories) {
-                this.stories = (session.stories || []).map(s => ({...s, backlogItems: s.backlogItems || []}));
+                this.stories = (session.stories || []).map(s => ({
+                  ...s,
+                  backlogItems: s.backlogItems || []
+                }));
                 hasChanged = true;
               }
 
               const incomingGoal = session.goal || '';
+
               if (this.sprintGoal !== incomingGoal) {
                 this.sprintGoal = incomingGoal;
                 hasChanged = true;
 
                 const goalCtrl = this.goalForm.get('goal');
+
                 if (goalCtrl && goalCtrl.pristine) {
                   this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
                 }
+              }
+
+              const incomingActiveUsers = JSON.stringify(session.activeUsers || []);
+              const localActiveUsers = JSON.stringify(this.activeUsers || []);
+
+              if (incomingActiveUsers !== localActiveUsers) {
+                this.activeUsers = session.activeUsers || [];
+                hasChanged = true;
               }
 
               if (hasChanged) {
@@ -281,8 +472,10 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     const dataToSave = {
       sessionId: this.sessionId || undefined,
       goal: this.sprintGoal,
-      stories: this.stories
+      stories: this.stories,
+      activeUsers: this.activeUsers
     };
+
     this.sprintService.saveData(dataToSave);
 
     if (this.sessionId) {

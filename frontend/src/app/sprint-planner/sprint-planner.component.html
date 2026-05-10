@@ -25,7 +25,17 @@
       <p style="font-size: 0.85em; color: #666;">
         Direct link: <code>/session/{{ sessionId }}</code>
       </p>
+
+
+      <div style="margin-top: 10px; background: white; border-radius: 6px; padding: 10px;">
+        <strong>Active users:</strong>
+        <span *ngIf="activeUsers.length === 0">No active users</span>
+        <span *ngFor="let user of activeUsers; let last = last">
+          {{ user.displayName }}<span *ngIf="!last">, </span>
+        </span>
+      </div>
     </div>
+
     <ng-template #noSession>
       <p>Start a shared session to collaborate with your team.</p>
       <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 10px;">

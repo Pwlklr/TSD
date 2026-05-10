@@ -1,4 +1,3 @@
-// sprint.model.ts
 export type StoryStatus = 'To Do' | 'In Progress' | 'Done';
 
 export interface ProductBacklogItem {
@@ -15,8 +14,15 @@ export interface UserStory {
   backlogItems?: ProductBacklogItem[];
 }
 
+export interface SessionUser {
+  userId: string;
+  displayName: string;
+  lastSeen?: number;
+}
+
 export interface SprintData {
-  sessionId?: string; 
+  sessionId?: string;
   goal: string;
   stories: UserStory[];
+  activeUsers?: SessionUser[];
 }
