@@ -23,7 +23,19 @@ export class SprintService {
     return data ? JSON.parse(data) : { goal: '', stories: [] };
   }
 
+  clearData() {
+    localStorage.removeItem(this.STORAGE_KEY);
+  }
+
   joinSession(sessionId: string): Observable<SprintData> {
-    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}`);
+    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}?t=${new Date().getTime()}`);
+  }
+
+  getSharedSession(sessionId: string): Observable<SprintData> {
+    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}?t=${new Date().getTime()}`);
+  }
+
+  updateSharedSession(sessionId: string, data: SprintData): Observable<SprintData> {
+    return this.http.put<SprintData>(`${this.apiUrl}/${sessionId}`, data);
   }
 }

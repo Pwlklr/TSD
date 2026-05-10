@@ -1,0 +1,21 @@
+networks:
+  sprint-network:
+    driver: bridge
+services:
+  backend:
+    build: ./backend
+    container_name: sprint-backend
+    ports:
+      - "8080:8080"
+    networks:
+      - sprint-network
+
+  frontend:
+    build: ./frontend
+    container_name: sprint-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - sprint-network

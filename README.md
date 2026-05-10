@@ -10,7 +10,22 @@ frontend/
 This document describes how to set up the environment, run each component, and understand the current tech stack.
 
 ---
+# How to Run with Docker (Recommended)
 
+The easiest and fastest way to run the entire application (both backend and frontend) is using Docker Compose. You only need to have [Docker](https://www.docker.com/) installed on your machine.
+
+From the root directory of the project, simply run:
+
+```bash
+docker compose up -d --build
+```
+Once the containers are built and started, the application will be available at:
+
+Frontend: http://localhost:4200
+
+Backend API: http://localhost:8080
+
+To stop the application and clean up, run `docker-compose down`. 
 
 # Required Tools
 
