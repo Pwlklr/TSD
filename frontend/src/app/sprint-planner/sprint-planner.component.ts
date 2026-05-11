@@ -226,10 +226,12 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   updateGoal() {
-    this.sprintGoal = this.goalForm.value.goal;
-    this.goalForm.markAsPristine();
-    this.persist();
-    this.cdr.detectChanges();
+    if (this.goalForm.valid) {
+      this.sprintGoal = this.goalForm.value.goal;
+      this.goalForm.markAsPristine();
+      this.persist();
+      this.cdr.detectChanges();
+    }
   }
 
   addStory() {
