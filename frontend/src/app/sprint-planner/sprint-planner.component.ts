@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../services/sprint.service';
-import { UserStory, ProductBacklogItem, SessionUser } from '../models/sprint.model';
+import { UserStory, ProductBacklogItem, SessionUser, SprintData } from '../models/sprint.model';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
 
@@ -28,6 +28,9 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   activeUsers: SessionUser[] = [];
   currentUser: SessionUser;
+
+  sprintHistory: SprintData[] = [];
+  showHistory: boolean = false;
 
   private pollingSubscription?: Subscription;
 
@@ -336,6 +339,37 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       userId,
       displayName
     };
+  }
+
+  loadHistory() {
+    this.sprintService.getSprintHistory().subscribe({
+      next: (history) => {
+        this.sprintHistory = history;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Failed to load history', err)
+    });
+  }
+
+  toggleHistory() {
+    this.showHistory = !this.showHistory;
+    if (this.showHistory) {
+      this.loadHistory();
+    }
+  }
+
+  completeSprint() {
+    if (!this.sessionId) return;
+    
+    if (confirm('Are you sure you want to complete this sprint? It will be moved to the history.')) {
+      this.sprintService.completeSprintSession(this.sessionId).subscribe({
+        next: () => {
+          alert('Sprint marked as complete!');
+          this.leaveSession();
+        },
+        error: (err) => console.error('Failed to complete sprint', err)
+      });
+    }
   }
 
   private askForDisplayName(): boolean {

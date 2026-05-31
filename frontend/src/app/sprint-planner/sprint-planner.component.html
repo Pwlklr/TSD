@@ -12,9 +12,14 @@
   </div>
 
   <div *ngIf="!sessionNotFound" class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; position: relative;">
-    <button *ngIf="sessionId" (click)="leaveSession()" style="position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
+    <div *ngIf="sessionId" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+    <button (click)="completeSprint()" style="background: #28a745; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
+      Complete Sprint
+    </button>
+    <button (click)="leaveSession()" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
       Leave Session
     </button>
+  </div>
 
     <h2 style="margin-top: 0;">Collaboration Hub</h2>
     <div *ngIf="sessionId; else noSession">
@@ -37,21 +42,44 @@
     </div>
 
     <ng-template #noSession>
-      <p>Start a shared session to collaborate with your team.</p>
-      <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
-        <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-          Create Shared Sprint
+    <p>Start a shared session to collaborate with your team.</p>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+      <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+        Create Shared Sprint
+      </button>
+      <span style="color: #666;">or</span>
+      <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()" style="display: flex; gap: 10px;">
+        <input formControlName="sessionCode" placeholder="Enter session code..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <button type="submit" [disabled]="joinForm.invalid" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+          Join
         </button>
-        <span style="color: #666;">or</span>
-        <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()" style="display: flex; gap: 10px;">
-          <input formControlName="sessionCode" placeholder="Enter session code..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-          <button type="submit" [disabled]="joinForm.invalid" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-            Join
-          </button>
-        </form>
+      </form>
+    </div>
+    <p *ngIf="joinError" style="color: red; margin-top: 10px;">{{ joinError }}</p>
+
+    <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px;">
+      <button (click)="toggleHistory()" style="background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
+        {{ showHistory ? 'Hide Sprint History' : 'View Sprint History' }}
+      </button>
+
+      <div *ngIf="showHistory" style="margin-top: 15px; text-align: left;">
+        <h3 style="text-align: center;">Completed Sprints</h3>
+        <p *ngIf="sprintHistory.length === 0" style="text-align: center; color: #666;">No completed sprints found.</p>
+        
+        <div *ngFor="let pastSprint of sprintHistory" style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 10px;">
+          <h4 style="margin-top: 0; color: #0056b3;">Goal: {{ pastSprint.goal || 'No Goal Defined' }} (Code: {{ pastSprint.sessionId }})</h4>
+          <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #555;">
+            <strong>Total Stories:</strong> {{ pastSprint.stories.length }}
+          </p>
+          <ul style="margin-top: 10px; padding-left: 20px; font-size: 0.9em;">
+            <li *ngFor="let story of pastSprint.stories">
+              {{ story.title }} - <strong>{{ story.status }}</strong>
+            </li>
+          </ul>
+        </div>
       </div>
-      <p *ngIf="joinError" style="color: red; margin-top: 10px;">{{ joinError }}</p>
-    </ng-template>
+    </div>
+  </ng-template>
   </div>
 
   <div *ngIf="!sessionNotFound" class="progress-section">

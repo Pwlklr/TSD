@@ -27,6 +27,14 @@ export class SprintService {
     localStorage.removeItem(this.STORAGE_KEY);
   }
 
+  getSprintHistory(): Observable<SprintData[]> {
+    return this.http.get<SprintData[]>(`${this.apiUrl}/history`);
+  }
+
+  completeSprintSession(sessionId: string): Observable<SprintData> {
+    return this.http.post<SprintData>(`${this.apiUrl}/${sessionId}/complete`, {});
+  }
+
   joinSession(sessionId: string): Observable<SprintData> {
     return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}?t=${new Date().getTime()}`);
   }
