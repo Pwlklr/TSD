@@ -48,7 +48,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Connect WS listener
     this.wsSubscription = this.sprintService.sessionUpdates$.subscribe((session: SprintData) => {
       this.handleIncomingSession(session);
     });
@@ -84,7 +83,7 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   private startCollaboration(sessionId: string) {
     this.sprintService.connectWebSocket(sessionId);
-    this.sendPresence(); // initial
+    this.sendPresence();
     if (this.presenceSubscription) this.presenceSubscription.unsubscribe();
     this.presenceSubscription = interval(10000).subscribe(() => this.sendPresence());
   }
@@ -168,7 +167,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     });
   }
 
-  // --- MIGRATED DOMAIN LOGIC: Tasks ---
   updateGoal() {
     if (this.goalForm.valid) {
       this.sprintGoal = this.goalForm.value.goal;
@@ -216,17 +214,14 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   trackByStory(index: number, story: UserStory) { return story.id; }
   trackByTask(index: number, task: Task) { return task.id; }
 
-  // --- STATE SYNC LOGIC ---
   private handleIncomingSession(session: SprintData) {
     this.sessionId = session.sessionId || this.sessionId;
     
-    // Update Stories
     const incomingStories = JSON.stringify(session.stories || []);
     if (incomingStories !== JSON.stringify(this.stories || [])) {
       this.stories = (session.stories || []).map((story: UserStory) => ({ ...story, tasks: story.tasks || [] }));
     }
 
-    // Update Goal
     const incomingGoal = session.goal || '';
     if (this.sprintGoal !== incomingGoal) {
       this.sprintGoal = incomingGoal;
@@ -236,7 +231,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Update Users
     const incomingUsers = JSON.stringify(session.activeUsers || []);
     if (incomingUsers !== JSON.stringify(this.activeUsers || [])) {
       this.activeUsers = session.activeUsers || [];
@@ -253,7 +247,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     this.sprintService.updateSharedSession(this.sessionId, dataToSave).subscribe();
   }
 
-  // --- ANCILLARY FUNCTIONS ---
   private getOrCreateCurrentUser(): SessionUser {
     let userId = localStorage.getItem('sprint_user_id');
     if (!userId || userId === 'undefined' || userId === 'null') {
@@ -266,37 +259,6 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       localStorage.setItem('sprint_user_name', displayName);
     }
     return { userId, displayName };
-  }
-
-  loadHistory() {
-    this.sprintService.getSprintHistory().subscribe({
-      next: (history) => {
-        this.sprintHistory = history;
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Failed to load history', err)
-    });
-  }
-
-  toggleHistory() {
-    this.showHistory = !this.showHistory;
-    if (this.showHistory) {
-      this.loadHistory();
-    }
-  }
-
-  completeSprint() {
-    if (!this.sessionId) return;
-    
-    if (confirm('Are you sure you want to complete this sprint? It will be moved to the history.')) {
-      this.sprintService.completeSprintSession(this.sessionId).subscribe({
-        next: () => {
-          alert('Sprint marked as complete!');
-          this.leaveSession();
-        },
-        error: (err) => console.error('Failed to complete sprint', err)
-      });
-    }
   }
 
   private askForDisplayName(): boolean {
@@ -318,8 +280,8 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   loadHistory() {
     this.sprintService.getSprintHistory().subscribe((history: SprintData[]) => { 
-      this.sprintHistory = history; 
-      this.cdr.detectChanges(); 
+        this.sprintHistory = history; 
+        this.cdr.detectChanges(); 
     });
   }
 
