@@ -64,13 +64,32 @@
     </div>
   </div>
 
-  <section *ngIf="!sessionNotFound">
+  <section *ngIf="!sessionNotFound" class="goal-section">
     <h2>Sprint Goal</h2>
-    <form [formGroup]="goalForm" (ngSubmit)="updateGoal()">
-      <input formControlName="goal" placeholder="Enter sprint goal...">
-      <button type="submit">Set Goal</button>
+
+    <form [formGroup]="goalForm" (ngSubmit)="updateGoal()" class="goal-form">
+      <div class="input-group">
+        <input
+          formControlName="goal"
+          placeholder="Enter sprint goal..."
+          [class.unsaved]="goalForm.dirty"
+        >
+        <!-- The button is only enabled if there are changes to save -->
+        <button type="submit" [disabled]="goalForm.pristine">
+          {{ sprintGoal ? 'Update Goal' : 'Set Goal' }}
+        </button>
+      </div>
+
+      <!-- Subtle hint if the user has typed but not saved -->
+      <small *ngIf="goalForm.dirty" class="hint-text">
+        You have unsaved changes.
+      </small>
     </form>
-    <p class="display-goal"><strong>Current Goal:</strong> {{ sprintGoal || 'No goal set.' }}</p>
+
+    <div class="display-goal-box">
+      <strong>Current Goal:</strong>
+      <span class="goal-text">{{ sprintGoal || 'No goal set yet.' }}</span>
+    </div>
   </section>
   <hr *ngIf="!sessionNotFound">
 
