@@ -10,10 +10,9 @@ public class UserStory {
     private String title;
     private String description;
     private String status;
-    private List<ProductBacklogItem> backlogItems = new ArrayList<>();
+    private List<Task> tasks = new ArrayList<>();
 
-    public UserStory() {
-    }
+    public UserStory() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -27,11 +26,11 @@ public class UserStory {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public List<ProductBacklogItem> getBacklogItems() { 
-        return backlogItems == null ? new ArrayList<>() : new ArrayList<>(backlogItems); 
+    public List<Task> getTasks() { 
+        return tasks == null ? new ArrayList<>() : new ArrayList<>(tasks); 
     }
     
-    public void setBacklogItems(List<ProductBacklogItem> backlogItems) { 
-        this.backlogItems = backlogItems == null ? new ArrayList<>() : new ArrayList<>(backlogItems); 
+    public void setTasks(List<Task> tasks) { 
+        this.tasks = tasks == null ? new ArrayList<>() : new ArrayList<>(tasks); 
     }
 }

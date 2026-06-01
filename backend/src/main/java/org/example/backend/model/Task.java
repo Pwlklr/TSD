@@ -3,15 +3,14 @@ package org.example.backend.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ProductBacklogItem {
+public class Task {
     private Long id;
     private String title;
     private String status;
 
-    public ProductBacklogItem() {
-    }
+    public Task() {}
 
-    public ProductBacklogItem(Long id, String title, String status) {
+    public Task(Long id, String title, String status) {
         this.id = id;
         this.title = title;
         this.status = status;

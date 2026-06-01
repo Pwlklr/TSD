@@ -1,49 +1,84 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { SessionUser, SprintData } from '../models/sprint.model';
+import { Client, Message } from '@stomp/stompjs';
 
 @Injectable({ providedIn: 'root' })
 export class SprintService {
   private STORAGE_KEY = 'sprint_planner_data';
   private apiUrl = 'http://localhost:8080/api/sprints';
+  private stompClient: Client | null = null;
+  
+  // This subject handles real-time WebSocket updates
+  public sessionUpdates$ = new Subject<SprintData>();
 
   constructor(private http: HttpClient) {}
 
-  createSharedSession(): Observable<SprintData> {
-    return this.http.post<SprintData>(this.apiUrl, {});
+  connectWebSocket(sessionId: string): void {
+    if (this.stompClient) { 
+      this.disconnectWebSocket(); 
+    }
+    
+    this.stompClient = new Client({
+      brokerURL: 'ws://localhost:8080/ws-sprint', 
+      reconnectDelay: 5000,
+    });
+
+    this.stompClient.onConnect = () => {
+      this.stompClient?.subscribe(`/topic/sprints/${sessionId}`, (message: Message) => {
+        if (message.body) {
+          this.sessionUpdates$.next(JSON.parse(message.body) as SprintData);
+        }
+      });
+    };
+    this.stompClient.activate();
   }
 
-  saveData(data: SprintData) {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+  disconnectWebSocket(): void {
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+      this.stompClient = null;
+    }
   }
 
-  getData(): SprintData {
-    const data = localStorage.getItem(this.STORAGE_KEY);
-    return data ? JSON.parse(data) : { goal: '', stories: [] };
+  createSharedSession(): Observable<SprintData> { 
+    return this.http.post<SprintData>(this.apiUrl, {}); 
   }
-
-  clearData() {
-    localStorage.removeItem(this.STORAGE_KEY);
+  
+  saveData(data: SprintData): void { 
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data)); 
   }
-
-  joinSession(sessionId: string): Observable<SprintData> {
-    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}?t=${new Date().getTime()}`);
+  
+  getData(): SprintData { 
+    return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{"goal":"","stories":[]}'); 
   }
-
-  getSharedSession(sessionId: string): Observable<SprintData> {
-    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}?t=${new Date().getTime()}`);
+  
+  clearData(): void { 
+    localStorage.removeItem(this.STORAGE_KEY); 
   }
-
-  updateSharedSession(sessionId: string, data: SprintData): Observable<SprintData> {
-    return this.http.put<SprintData>(`${this.apiUrl}/${sessionId}`, data);
+  
+  getSprintHistory(): Observable<SprintData[]> { 
+    return this.http.get<SprintData[]>(`${this.apiUrl}/history`); 
   }
-
-  updatePresence(sessionId: string, user: SessionUser): Observable<SprintData> {
-    return this.http.post<SprintData>(`${this.apiUrl}/${sessionId}/presence`, user);
+  
+  completeSprintSession(sessionId: string): Observable<SprintData> { 
+    return this.http.post<SprintData>(`${this.apiUrl}/${sessionId}/complete`, {}); 
   }
-
-  removePresence(sessionId: string, userId: string): Observable<SprintData> {
-    return this.http.delete<SprintData>(`${this.apiUrl}/${sessionId}/presence/${userId}`);
+  
+  joinSession(sessionId: string): Observable<SprintData> { 
+    return this.http.get<SprintData>(`${this.apiUrl}/${sessionId}?t=${new Date().getTime()}`); 
+  }
+  
+  updateSharedSession(sessionId: string, data: SprintData): Observable<SprintData> { 
+    return this.http.put<SprintData>(`${this.apiUrl}/${sessionId}`, data); 
+  }
+  
+  updatePresence(sessionId: string, user: SessionUser): Observable<SprintData> { 
+    return this.http.post<SprintData>(`${this.apiUrl}/${sessionId}/presence`, user); 
+  }
+  
+  removePresence(sessionId: string, userId: string): Observable<SprintData> { 
+    return this.http.delete<SprintData>(`${this.apiUrl}/${sessionId}/presence/${userId}`); 
   }
 }

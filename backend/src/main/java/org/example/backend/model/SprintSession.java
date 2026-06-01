@@ -1,17 +1,25 @@
 package org.example.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Document(collection = "sprints")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SprintSession {
+    
+    @Id
     private String sessionId;
     private String goal;
+    private boolean completed; 
     private List<UserStory> stories = new ArrayList<>();
     private List<SessionUser> activeUsers = new ArrayList<>();
 
     public SprintSession() {
+        this.completed = false;
     }
 
     public SprintSession(String sessionId, String goal, List<UserStory> stories) {
@@ -19,7 +27,11 @@ public class SprintSession {
         this.goal = goal;
         this.stories = stories == null ? new ArrayList<>() : new ArrayList<>(stories);
         this.activeUsers = new ArrayList<>();
+        this.completed = false;
     }
+
+    public boolean isCompleted() { return completed; }
+    public void setCompleted(boolean completed) { this.completed = completed; }
 
     public String getSessionId() { return sessionId; }
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }
