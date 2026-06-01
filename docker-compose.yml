@@ -1,12 +1,31 @@
 networks:
   sprint-network:
     driver: bridge
+
 services:
+  mongodb:
+    image: mongo:latest
+    container_name: sprint-mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - sprint-network
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ./backend
     container_name: sprint-backend
     ports:
       - "8080:8080"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     networks:
       - sprint-network
 
@@ -19,3 +38,6 @@ services:
       - backend
     networks:
       - sprint-network
+
+volumes:
+  mongo-data:
