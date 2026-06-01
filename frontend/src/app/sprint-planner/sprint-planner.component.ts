@@ -268,6 +268,37 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     return { userId, displayName };
   }
 
+  loadHistory() {
+    this.sprintService.getSprintHistory().subscribe({
+      next: (history) => {
+        this.sprintHistory = history;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Failed to load history', err)
+    });
+  }
+
+  toggleHistory() {
+    this.showHistory = !this.showHistory;
+    if (this.showHistory) {
+      this.loadHistory();
+    }
+  }
+
+  completeSprint() {
+    if (!this.sessionId) return;
+    
+    if (confirm('Are you sure you want to complete this sprint? It will be moved to the history.')) {
+      this.sprintService.completeSprintSession(this.sessionId).subscribe({
+        next: () => {
+          alert('Sprint marked as complete!');
+          this.leaveSession();
+        },
+        error: (err) => console.error('Failed to complete sprint', err)
+      });
+    }
+  }
+
   private askForDisplayName(): boolean {
     const currentName = this.currentUser.displayName || '';
     const enteredName = window.prompt('Enter your display name:', currentName);

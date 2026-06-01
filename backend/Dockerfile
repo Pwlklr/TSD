@@ -12,7 +12,7 @@ RUN chmod +x ./gradlew
 RUN ./gradlew --no-daemon dependencies
 
 COPY src src
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew clean bootJar --no-daemon
 
 FROM base AS run
 WORKDIR /app
