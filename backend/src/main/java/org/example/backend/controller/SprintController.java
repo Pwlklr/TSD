@@ -5,6 +5,7 @@ import org.example.backend.model.SprintSession;
 import org.example.backend.repository.SprintRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,20 +20,24 @@ import java.util.UUID;
 public class SprintController {
 
     private final SprintRepository sprintRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     private static final long PRESENCE_TIMEOUT_MS = 15000;
 
     @Autowired
-    public SprintController(SprintRepository sprintRepository) {
+    public SprintController(SprintRepository sprintRepository, SimpMessagingTemplate messagingTemplate) {
         this.sprintRepository = sprintRepository;
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    private void broadcastUpdate(SprintSession session) {
+        messagingTemplate.convertAndSend("/topic/sprints/" + session.getSessionId(), session);
     }
 
     @PostMapping
     public SprintSession createSprintSession() {
         String sessionId = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         SprintSession newSession = new SprintSession(sessionId, "", new ArrayList<>());
-        
         sprintRepository.save(newSession);
-        System.out.println("Utworzono nowa sesje w MongoDB: " + sessionId);
         return newSession;
     }
 
@@ -42,7 +47,8 @@ public class SprintController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sprint session not found"));
 
         if (removeInactiveUsers(session)) {
-            sprintRepository.save(session); 
+            sprintRepository.save(session);
+            broadcastUpdate(session);
         }
         return session;
     }
@@ -59,6 +65,7 @@ public class SprintController {
         
         session.setCompleted(true);
         sprintRepository.save(session);
+        broadcastUpdate(session);
         return session;
     }
 
@@ -70,7 +77,7 @@ public class SprintController {
             updatedSession.setCompleted(existingSession.isCompleted());
             
             sprintRepository.save(updatedSession);
-            System.out.println("Zaktualizowano sesje w MongoDB: " + sessionId);
+            broadcastUpdate(updatedSession);
             return updatedSession;
         }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sprint session not found"));
     }
@@ -105,6 +112,7 @@ public class SprintController {
         removeInactiveUsers(session);
         
         sprintRepository.save(session); 
+        broadcastUpdate(session);
         return session;
     }
 
@@ -117,6 +125,7 @@ public class SprintController {
         if (activeUsers.removeIf(user -> user.getUserId().equals(userId))) {
             session.setActiveUsers(activeUsers);
             sprintRepository.save(session);
+            broadcastUpdate(session);
         }
         return session;
     }

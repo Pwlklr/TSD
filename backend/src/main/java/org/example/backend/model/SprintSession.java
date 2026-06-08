@@ -30,13 +30,8 @@ public class SprintSession {
         this.completed = false;
     }
 
-    public boolean isCompleted() { 
-        return completed; 
-    }
-
-    public void setCompleted(boolean completed) { 
-        this.completed = completed; 
-    }
+    public boolean isCompleted() { return completed; }
+    public void setCompleted(boolean completed) { this.completed = completed; }
 
     public String getSessionId() { return sessionId; }
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }

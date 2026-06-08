@@ -1,6 +1,6 @@
 export type StoryStatus = 'To Do' | 'In Progress' | 'Done';
 
-export interface ProductBacklogItem {
+export interface Task {
   id: number;
   title: string;
   status: StoryStatus;
@@ -11,7 +11,7 @@ export interface UserStory {
   title: string;
   description?: string;
   status: StoryStatus;
-  backlogItems?: ProductBacklogItem[];
+  tasks?: Task[];
 }
 
 export interface SessionUser {

@@ -2,6 +2,9 @@ networks:
   sprint-network:
     driver: bridge
 
+volumes:
+  mongo-data:
+
 services:
   mongodb:
     image: mongo:latest
@@ -38,6 +41,3 @@ services:
       - backend
     networks:
       - sprint-network
-
-volumes:
-  mongo-data:
