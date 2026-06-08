@@ -139,4 +139,17 @@ public class SprintController {
         }
         return modified;
     }
+
+    @DeleteMapping("/history/{sessionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSprintFromHistory(@PathVariable String sessionId) {
+        SprintSession session = sprintRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sprint session not found"));
+
+        if (!session.isCompleted()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete an active sprint from history");
+        }
+
+        sprintRepository.delete(session);
+    }
 }

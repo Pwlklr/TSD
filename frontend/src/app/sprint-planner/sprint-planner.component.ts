@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../services/sprint.service';
+import { ConfirmationModalComponent } from './confirmation-modal.component';
 import { UserStory, Task, SessionUser, SprintData } from '../models/sprint.model';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
@@ -9,7 +10,7 @@ import { interval, Subscription } from 'rxjs';
 @Component({
   selector: 'app-sprint-planner',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule, ConfirmationModalComponent],
   templateUrl: './sprint-planner.component.html',
   styleUrls: ['./sprint-planner.component.css']
 })
@@ -34,6 +35,10 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   private presenceSubscription?: Subscription;
   private wsSubscription?: Subscription;
+
+  isModalOpen = false;
+  modalItemName = '';
+  pendingDeleteAction: (() => void) | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -299,4 +304,54 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
       });
     }
   }
+
+  openDeleteConfirmation(itemName: string, action: () => void) {
+    this.modalItemName = itemName;
+    this.pendingDeleteAction = action;
+    this.isModalOpen = true;
+  }
+
+  confirmDelete() {
+    if (this.pendingDeleteAction) {
+      this.pendingDeleteAction();
+    }
+    this.closeModal();
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.pendingDeleteAction = null;
+    this.modalItemName = '';
+  }
+
+  deleteStory(storyId: number, storyTitle: string) {
+    this.openDeleteConfirmation(`User Story: "${storyTitle}"`, () => {
+      this.stories = this.stories.filter(s => s.id !== storyId);
+      this.persist();
+      this.cdr.detectChanges();
+    });
+  }
+
+  deleteTask(storyId: number, taskId: number, taskTitle: string) {
+    this.openDeleteConfirmation(`Task: "${taskTitle}"`, () => {
+      const story = this.stories.find(s => s.id === storyId);
+      if (story && story.tasks) {
+        story.tasks = story.tasks.filter(t => t.id !== taskId);
+        this.persist();
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  deleteSprintFromHistory(sessionId: string, goal: string) {
+    this.openDeleteConfirmation(`Sprint History Entry: "${goal || sessionId}"`, () => {
+      this.sprintService.deleteSprintFromHistory(sessionId).subscribe({
+        next: () => {
+          this.sprintHistory = this.sprintHistory.filter(s => s.sessionId !== sessionId);
+          this.cdr.detectChanges();
+        }
+      });
+    });
+  }
+
 }
