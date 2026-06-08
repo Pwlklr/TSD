@@ -26,6 +26,8 @@ services:
     container_name: sprint-backend
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     depends_on:
       mongodb:
         condition: service_healthy

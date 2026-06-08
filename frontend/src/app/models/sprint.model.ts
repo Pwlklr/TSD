@@ -24,6 +24,7 @@ export interface SprintData {
   sessionId?: string;
   goal: string;
   stories: UserStory[];
-  completed?: boolean; 
+  completed?: boolean;
   activeUsers?: SessionUser[];
+  participantUserIds?: string[];
 }
