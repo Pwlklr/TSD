@@ -34,9 +34,9 @@ jobs:
             
             GCP_VM_IP='${{ secrets.GCP_VM_IP }}'
             
-            sed -i "s|http://localhost:8080/api/auth|http://${GCP_VM_IP}:8080/api/auth|g" frontend/src/app/services/auth.service.ts
-            sed -i "s|http://localhost:8080/api/sprints|http://${GCP_VM_IP}:8080/api/sprints|g" frontend/src/app/services/sprint.service.ts
-            sed -i "s|ws://localhost:8080/ws-sprint|ws://${GCP_VM_IP}:8080/ws-sprint|g" frontend/src/app/services/sprint.service.ts
+            sed -i "s|http://localhost:8080/api/auth|/api/auth|g" frontend/src/app/services/auth.service.ts
+            sed -i "s|http://localhost:8080/api/sprints|/api/sprints|g" frontend/src/app/services/sprint.service.ts
+            sed -i "s|brokerURL: 'ws://localhost:8080/ws-sprint'|brokerURL: \`ws://\${window.location.host}/ws-sprint\`|g" frontend/src/app/services/sprint.service.ts
             
             echo "=== Check frontend URLs after sed ==="
             grep -R "localhost:8080" -n frontend/src/app/services || true
