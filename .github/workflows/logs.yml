@@ -1,0 +1,80 @@
+name: VM Logs Only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check current VM containers and logs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: ${{ secrets.GCP_USERNAME }}
+          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+          command_timeout: 10m
+          script: |
+            set +e
+
+            cd /home/pawel_kelar_put/TSD
+
+            echo ""
+            echo "==================== 1. CURRENT DIRECTORY ===================="
+            pwd
+
+            echo ""
+            echo "==================== 2. GIT STATUS ===================="
+            git status --short
+            git branch --show-current
+            git log -1 --oneline
+
+            echo ""
+            echo "==================== 3. DOCKER COMPOSE PS ===================="
+            sudo docker-compose ps
+
+            echo ""
+            echo "==================== 4. DOCKER PS ===================="
+            sudo docker ps -a
+
+            echo ""
+            echo "==================== 5. BACKEND LOGS ===================="
+            sudo docker-compose logs backend --tail=200
+
+            echo ""
+            echo "==================== 6. FRONTEND LOGS ===================="
+            sudo docker-compose logs frontend --tail=120
+
+            echo ""
+            echo "==================== 7. MONGODB LOGS ===================="
+            sudo docker-compose logs mongodb --tail=80
+
+            echo ""
+            echo "==================== 8. NGINX CONFIG INSIDE FRONTEND CONTAINER ===================="
+            sudo docker-compose exec -T frontend cat /etc/nginx/conf.d/default.conf
+
+            echo ""
+            echo "==================== 9. CHECK FRONTEND SERVICE URLS ON VM ===================="
+            grep -R "localhost:8080" -n frontend/src/app/services || true
+            grep -R "/api/auth" -n frontend/src/app/services || true
+            grep -R "/api/sprints" -n frontend/src/app/services || true
+            grep -R "ws://" -n frontend/src/app/services || true
+
+            echo ""
+            echo "==================== 10. TEST BACKEND FROM VM LOCALHOST ===================="
+            curl -v -X POST http://localhost:8080/api/sprints
+
+            echo ""
+            echo "==================== 11. TEST BACKEND FROM FRONTEND CONTAINER ===================="
+            sudo docker-compose exec -T frontend wget -S -O- --method=POST http://backend:8080/api/sprints
+
+            echo ""
+            echo "==================== 12. TEST API THROUGH NGINX FROM VM ===================="
+            curl -v -X POST http://localhost/api/sprints
+
+            echo ""
+            echo "==================== 13. DOCKER NETWORK INSPECT ===================="
+            sudo docker network inspect tsd_sprint-network || sudo docker network inspect TSD_sprint-network || true
+
+            echo ""
+            echo "==================== DONE ===================="
