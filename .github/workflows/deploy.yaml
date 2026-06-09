@@ -17,13 +17,15 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           command_timeout: 60m
           script: |
+            set -e
             cd /home/pawel_kelar_put/TSD
             git config --global --add safe.directory /home/pawel_kelar_put/TSD
             sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD/.git
             sudo chmod -R u+rwX /home/pawel_kelar_put/TSD/.git
             
             # Pobranie najnowszego kodu
-            git pull origin main
+            git fetch origin
+            git checkout Deploy
             
             # Utworzenie pliku .env z sekretów GitHuba
             cat <<EOF | sudo tee .env > /dev/null
