@@ -22,11 +22,10 @@ jobs:
             cd /home/pawel_kelar_put/TSD
 
             git config --global --add safe.directory /home/pawel_kelar_put/TSD
-            sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD/.git
-            sudo chmod -R u+rwX /home/pawel_kelar_put/TSD/.git
+
             
-            sudo chown $USER:$USER /home/pawel_kelar_put/TSD/docker-compose.yml
-            sudo chmod u+rw /home/pawel_kelar_put/TSD/docker-compose.yml
+            sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD
+            sudo chmod -R u+rwX /home/pawel_kelar_put/TSD
 
             git fetch origin
 
