@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../services/sprint.service';
-import { UserStory, ProductBacklogItem, SessionUser, SprintData } from '../models/sprint.model';
+import { UserStory, Task, SessionUser, SprintData } from '../models/sprint.model';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-sprint-planner',
@@ -27,41 +28,33 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   isLoadingSession: boolean = false;
 
   activeUsers: SessionUser[] = [];
-  currentUser: SessionUser;
 
   sprintHistory: SprintData[] = [];
   showHistory: boolean = false;
 
-  private pollingSubscription?: Subscription;
+  private presenceSubscription?: Subscription;
+  private wsSubscription?: Subscription;
 
   constructor(
     private fb: FormBuilder,
     private sprintService: SprintService,
     private cdr: ChangeDetectorRef,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private authService: AuthService
   ) {
     this.goalForm = this.fb.group({ goal: ['', Validators.required] });
-
-    this.storyForm = this.fb.group({
-      title: ['', Validators.required],
-      description: ['']
-    });
-
-    this.joinForm = this.fb.group({
-      sessionCode: ['', Validators.required]
-    });
-
-    this.currentUser = this.getOrCreateCurrentUser();
+    this.storyForm = this.fb.group({ title: ['', Validators.required], description: [''] });
+    this.joinForm = this.fb.group({ sessionCode: ['', Validators.required] });
   }
 
   ngOnInit() {
+    this.wsSubscription = this.sprintService.sessionUpdates$.subscribe((session: SprintData) => {
+      this.handleIncomingSession(session);
+    });
+
     const sessionIdFromUrl = this.route.snapshot.paramMap.get('id');
 
     if (sessionIdFromUrl) {
-      if (!this.askForDisplayName()) {
-        return;
-      }
-
       this.loadSessionFromUrl(sessionIdFromUrl);
       return;
     }
@@ -73,36 +66,86 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     this.stories = (saved.stories || []).map((story: UserStory) => ({
       ...story,
       status: story.status || 'To Do',
-      backlogItems: story.backlogItems || []
+      tasks: story.tasks || []
     }));
     this.activeUsers = saved.activeUsers || [];
 
     this.goalForm.patchValue({ goal: this.sprintGoal });
 
     if (this.sessionId) {
-      this.startPolling();
+      this.startCollaboration(this.sessionId);
     }
   }
 
   ngOnDestroy() {
-    this.stopPolling();
+    this.stopCollaboration();
+    if (this.wsSubscription) this.wsSubscription.unsubscribe();
   }
 
-  private stopPolling() {
-    if (this.pollingSubscription) {
-      this.pollingSubscription.unsubscribe();
+  get loggedUser() {
+    return this.authService.getUser();
+  }
+
+  get isLoggedIn(): boolean {
+    return this.authService.isLoggedIn();
+  }
+
+  private startCollaboration(sessionId: string) {
+    this.sprintService.connectWebSocket(sessionId);
+
+    if (this.isLoggedIn) {
+      this.sendPresence();
+
+      if (this.presenceSubscription) this.presenceSubscription.unsubscribe();
+
+      this.presenceSubscription = interval(10000).subscribe(() => this.sendPresence());
     }
+  }
+
+  private stopCollaboration() {
+    this.sprintService.disconnectWebSocket();
+
+    if (this.presenceSubscription) {
+      this.presenceSubscription.unsubscribe();
+    }
+  }
+
+  logout() {
+    const user = this.authService.getUser();
+
+    if (this.sessionId && user) {
+      this.sprintService.removePresence(this.sessionId, user.id).subscribe({
+        next: () => {
+          this.authService.logout();
+          this.stopCollaboration();
+          window.location.href = '/auth';
+        },
+        error: () => {
+          this.authService.logout();
+          this.stopCollaboration();
+          window.location.href = '/auth';
+        }
+      });
+
+      return;
+    }
+
+    this.authService.logout();
+    this.stopCollaboration();
+    window.location.href = '/auth';
+  }
+
+  goToLogin() {
+    window.location.href = '/auth';
   }
 
   leaveSession() {
-    const sessionToLeave = this.sessionId;
-    const userToRemove = this.currentUser.userId;
+    const user = this.authService.getUser();
 
-    if (sessionToLeave) {
-      this.sprintService.removePresence(sessionToLeave, userToRemove).subscribe();
+    if (this.sessionId && user) {
+      this.sprintService.removePresence(this.sessionId, user.id).subscribe();
     }
-
-    this.stopPolling();
+    this.stopCollaboration();
     this.sprintService.clearData();
 
     this.sessionId = null;
@@ -111,115 +154,60 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
     this.activeUsers = [];
     this.goalForm.reset();
     this.joinError = '';
-
     this.sessionNotFound = false;
     this.isLoadingSession = false;
-
     this.cdr.detectChanges();
   }
 
   private loadSessionFromUrl(sessionIdFromUrl: string) {
     const code = sessionIdFromUrl.trim().toUpperCase();
-
     if (!/^[A-Za-z0-9]{6}$/.test(code)) {
       this.sessionNotFound = true;
       this.joinError = 'Invalid session code format.';
-      this.cdr.detectChanges();
       return;
     }
 
     this.isLoadingSession = true;
-    this.sessionNotFound = false;
-    this.joinError = '';
-
     this.sprintService.joinSession(code).subscribe({
       next: (session) => {
-        this.sessionId = session.sessionId!;
-        this.sprintGoal = session.goal || '';
-        this.stories = (session.stories || []).map((story: UserStory) => ({
-          ...story,
-          backlogItems: story.backlogItems || []
-        }));
-        this.activeUsers = session.activeUsers || [];
-
-        this.goalForm.patchValue({ goal: this.sprintGoal });
-
+        this.handleIncomingSession(session);
         this.joinError = '';
         this.sessionNotFound = false;
         this.isLoadingSession = false;
-
-        this.persist();
-        this.startPolling();
-        this.cdr.detectChanges();
+        this.startCollaboration(this.sessionId!);
       },
       error: () => {
-        this.stopPolling();
-
+        this.stopCollaboration();
         this.sessionId = null;
-        this.sprintGoal = '';
-        this.stories = [];
-        this.activeUsers = [];
-        this.joinError = 'Session not found. Check the code and try again.';
+        this.joinError = 'Session not found.';
         this.sessionNotFound = true;
         this.isLoadingSession = false;
-
         this.cdr.detectChanges();
       }
     });
   }
 
   createSharedSession() {
-    if (!this.askForDisplayName()) {
-      return;
-    }
-
     this.sprintService.createSharedSession().subscribe({
       next: (session) => {
-        this.sessionId = session.sessionId!;
-        this.sprintGoal = session.goal || '';
-        this.stories = session.stories || [];
-        this.activeUsers = session.activeUsers || [];
-
-        this.goalForm.patchValue({ goal: this.sprintGoal });
-
-        this.persist();
-        this.startPolling();
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Failed to create session', err)
+        this.handleIncomingSession(session);
+        this.startCollaboration(this.sessionId!);
+      }
     });
   }
 
   joinSharedSession() {
-    if (this.joinForm.invalid) {
-      return;
-    }
-
-    if (!this.askForDisplayName()) {
-      return;
-    }
+    if (this.joinForm.invalid) return;
 
     const code = this.joinForm.value.sessionCode.trim().toUpperCase();
 
     this.sprintService.joinSession(code).subscribe({
       next: (session) => {
-        this.sessionId = session.sessionId!;
-        this.sprintGoal = session.goal || '';
-        this.stories = (session.stories || []).map((story: UserStory) => ({
-          ...story,
-          backlogItems: story.backlogItems || []
-        }));
-        this.activeUsers = session.activeUsers || [];
-
-        this.goalForm.patchValue({ goal: this.sprintGoal });
+        this.handleIncomingSession(session);
         this.joinError = '';
-
         this.sessionNotFound = false;
         this.isLoadingSession = false;
-
-        this.persist();
-        this.startPolling();
-        this.cdr.detectChanges();
+        this.startCollaboration(this.sessionId!);
       },
       error: () => {
         this.joinError = 'Session not found. Check the code and try again.';
@@ -229,267 +217,154 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
   }
 
   updateGoal() {
+    if (!this.isLoggedIn) {
+      alert('You must log in to edit the sprint.');
+      return;
+    }
+
     if (this.goalForm.valid) {
       this.sprintGoal = this.goalForm.value.goal;
       this.goalForm.markAsPristine();
       this.persist();
-      this.cdr.detectChanges();
     }
   }
 
   addStory() {
+    if (!this.isLoggedIn) {
+      alert('You must log in to edit the sprint.');
+      return;
+    }
+
     if (this.storyForm.valid) {
-      const newStory: UserStory = {
+      this.stories.push({
         id: Date.now(),
         status: 'To Do',
-        backlogItems: [],
+        tasks: [],
         ...this.storyForm.value
-      };
+      });
 
-      this.stories.push(newStory);
       this.storyForm.reset();
       this.persist();
-      this.cdr.detectChanges();
     }
   }
 
   changeStatus(storyId: number, status: any) {
-    const story = this.stories.find(s => s.id === storyId);
-
-    if (story) {
-      story.status = status;
-      this.persist();
-      this.cdr.detectChanges();
-    }
-  }
-
-  addBacklogItemToStory(storyId: number, itemTitle: string) {
-    if (!itemTitle || !itemTitle.trim()) {
+    if (!this.isLoggedIn) {
+      alert('You must log in to edit the sprint.');
       return;
     }
 
     const story = this.stories.find(s => s.id === storyId);
 
     if (story) {
-      if (!story.backlogItems) {
-        story.backlogItems = [];
-      }
+      story.status = status;
+      this.persist();
+    }
+  }
 
-      story.backlogItems.push({
+  addTaskToStory(storyId: number, taskTitle: string) {
+    if (!this.isLoggedIn) {
+      alert('You must log in to edit the sprint.');
+      return;
+    }
+
+    if (!taskTitle || !taskTitle.trim()) return;
+
+    const story = this.stories.find(s => s.id === storyId);
+
+    if (story) {
+      if (!story.tasks) story.tasks = [];
+
+      story.tasks.push({
         id: Date.now(),
-        title: itemTitle.trim(),
+        title: taskTitle.trim(),
         status: 'To Do'
       });
 
       this.persist();
-      this.cdr.detectChanges();
     }
   }
 
-  changeBacklogItemStatus(storyId: number, itemId: number, status: any) {
+  changeTaskStatus(storyId: number, taskId: number, status: any) {
+    if (!this.isLoggedIn) {
+      alert('You must log in to edit the sprint.');
+      return;
+    }
+
     const story = this.stories.find(s => s.id === storyId);
 
-    if (story && story.backlogItems) {
-      const item = story.backlogItems.find(i => i.id === itemId);
+    if (story && story.tasks) {
+      const task = story.tasks.find(t => t.id === taskId);
 
-      if (item) {
-        item.status = status;
+      if (task) {
+        task.status = status;
         this.persist();
-        this.cdr.detectChanges();
       }
     }
   }
 
   get progressPercentage(): number {
-    if (this.stories.length === 0) {
-      return 0;
-    }
+    if (this.stories.length === 0) return 0;
 
-    const done = this.stories.filter(story => story.status === 'Done').length;
-    return Math.round((done / this.stories.length) * 100);
+    return Math.round(
+      (this.stories.filter(s => s.status === 'Done').length / this.stories.length) * 100
+    );
   }
 
   trackByStory(index: number, story: UserStory) {
     return story.id;
   }
 
-  trackByItem(index: number, item: ProductBacklogItem) {
-    return item.id;
+  trackByTask(index: number, task: Task) {
+    return task.id;
   }
 
-  private getOrCreateCurrentUser(): SessionUser {
-    let userId = localStorage.getItem('sprint_user_id');
+  private handleIncomingSession(session: SprintData) {
+    this.sessionId = session.sessionId || this.sessionId;
 
-    if (!userId || userId === 'undefined' || userId === 'null') {
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        userId = crypto.randomUUID();
-      } else {
-        userId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+    const incomingStories = JSON.stringify(session.stories || []);
+
+    if (incomingStories !== JSON.stringify(this.stories || [])) {
+      this.stories = (session.stories || []).map((story: UserStory) => ({
+        ...story,
+        tasks: story.tasks || []
+      }));
+    }
+
+    const incomingGoal = session.goal || '';
+
+    if (this.sprintGoal !== incomingGoal) {
+      this.sprintGoal = incomingGoal;
+
+      const goalCtrl = this.goalForm.get('goal');
+
+      if (goalCtrl && goalCtrl.pristine) {
+        this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
       }
-
-      localStorage.setItem('sprint_user_id', userId);
     }
 
-    let displayName = localStorage.getItem('sprint_user_name');
+    const incomingUsers = JSON.stringify(session.activeUsers || []);
 
-    if (!displayName || displayName === 'undefined' || displayName === 'null') {
-      displayName = `Anonymous ${userId.substring(0, 4).toUpperCase()}`;
-      localStorage.setItem('sprint_user_name', displayName);
+    if (incomingUsers !== JSON.stringify(this.activeUsers || [])) {
+      this.activeUsers = session.activeUsers || [];
     }
 
-    return {
-      userId,
-      displayName
-    };
-  }
-
-  loadHistory() {
-    this.sprintService.getSprintHistory().subscribe({
-      next: (history) => {
-        this.sprintHistory = history;
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Failed to load history', err)
+    this.sprintService.saveData({
+      sessionId: this.sessionId!,
+      goal: this.sprintGoal,
+      stories: this.stories,
+      activeUsers: this.activeUsers,
+      participantUserIds: session.participantUserIds || []
     });
-  }
 
-  toggleHistory() {
-    this.showHistory = !this.showHistory;
-    if (this.showHistory) {
-      this.loadHistory();
-    }
-  }
-
-  completeSprint() {
-    if (!this.sessionId) return;
-    
-    if (confirm('Are you sure you want to complete this sprint? It will be moved to the history.')) {
-      this.sprintService.completeSprintSession(this.sessionId).subscribe({
-        next: () => {
-          alert('Sprint marked as complete!');
-          this.leaveSession();
-        },
-        error: (err) => console.error('Failed to complete sprint', err)
-      });
-    }
-  }
-
-  private askForDisplayName(): boolean {
-    const currentName = this.currentUser.displayName || '';
-    const enteredName = window.prompt('Enter your display name:', currentName);
-
-    if (enteredName === null) {
-      return false;
-    }
-
-    const trimmedName = enteredName.trim();
-
-    if (!trimmedName) {
-      this.joinError = 'Display name is required.';
-      this.cdr.detectChanges();
-      return false;
-    }
-
-    this.currentUser.displayName = trimmedName;
-    localStorage.setItem('sprint_user_name', trimmedName);
-
-    return true;
-  }
-
-  private sendPresence() {
-    if (!this.sessionId) {
-      return;
-    }
-
-    if (!this.currentUser.userId) {
-      this.currentUser = this.getOrCreateCurrentUser();
-    }
-
-    const userToSend: SessionUser = {
-      userId: this.currentUser.userId,
-      displayName: this.currentUser.displayName || 'Anonymous'
-    };
-
-    console.log('Sending presence:', this.sessionId, userToSend);
-
-    this.sprintService.updatePresence(this.sessionId, userToSend).subscribe({
-      next: () => {
-        console.log('Presence updated');
-      },
-      error: (err) => {
-        console.error('Presence update failed', err);
-      }
-    });
-  }
-
-  private startPolling() {
-    this.stopPolling();
-
-    this.pollSession();
-
-    this.pollingSubscription = interval(3000).subscribe(() => {
-      this.pollSession();
-    });
-  }
-
-  private pollSession() {
-    if (!this.sessionId) {
-      return;
-    }
-
-    this.sendPresence();
-
-    this.sprintService.getSharedSession(this.sessionId).subscribe({
-      next: (session) => {
-        if (session) {
-          let hasChanged = false;
-
-          const incomingStories = JSON.stringify(session.stories || []);
-          const localStories = JSON.stringify(this.stories || []);
-
-          if (incomingStories !== localStories) {
-            this.stories = (session.stories || []).map((story: UserStory) => ({
-              ...story,
-              backlogItems: story.backlogItems || []
-            }));
-            hasChanged = true;
-          }
-
-          const incomingGoal = session.goal || '';
-
-          if (this.sprintGoal !== incomingGoal) {
-            this.sprintGoal = incomingGoal;
-            hasChanged = true;
-
-            const goalCtrl = this.goalForm.get('goal');
-
-            if (goalCtrl && goalCtrl.pristine) {
-              this.goalForm.patchValue({ goal: this.sprintGoal }, { emitEvent: false });
-            }
-          }
-
-          const incomingActiveUsers = JSON.stringify(session.activeUsers || []);
-          const localActiveUsers = JSON.stringify(this.activeUsers || []);
-
-          if (incomingActiveUsers !== localActiveUsers) {
-            this.activeUsers = session.activeUsers || [];
-            hasChanged = true;
-          }
-
-          if (hasChanged) {
-            this.cdr.detectChanges();
-          }
-        }
-      },
-      error: (err) => {
-        console.error('Failed to poll session', err);
-      }
-    });
+    this.cdr.detectChanges();
   }
 
   private persist() {
+    if (!this.sessionId) return;
+
     const dataToSave = {
-      sessionId: this.sessionId || undefined,
+      sessionId: this.sessionId,
       goal: this.sprintGoal,
       stories: this.stories,
       activeUsers: this.activeUsers
@@ -497,14 +372,60 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
     this.sprintService.saveData(dataToSave);
 
-    if (this.sessionId) {
-      this.sprintService.updateSharedSession(this.sessionId, dataToSave).subscribe({
+    this.sprintService.updateSharedSession(this.sessionId, dataToSave).subscribe({
+      error: () => {
+        alert('You must log in to save changes.');
+      }
+    });
+  }
+
+  private sendPresence() {
+    if (!this.sessionId || !this.isLoggedIn) return;
+
+    this.sprintService.updatePresence(this.sessionId).subscribe();
+  }
+
+  loadHistory() {
+    if (!this.isLoggedIn) {
+      alert('You must log in to view your sprint history.');
+      return;
+    }
+
+    this.sprintService.getSprintHistory().subscribe({
+      next: (history: SprintData[]) => {
+        this.sprintHistory = history;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        alert('Could not load history. Please log in again.');
+      }
+    });
+  }
+
+  toggleHistory() {
+    this.showHistory = !this.showHistory;
+
+    if (this.showHistory) {
+      this.loadHistory();
+    }
+  }
+
+  completeSprint() {
+    if (!this.isLoggedIn) {
+      alert('You must log in to complete the sprint.');
+      return;
+    }
+
+    if (!this.sessionId) return;
+
+    if (confirm('Are you sure you want to complete this sprint? It will be moved to your history.')) {
+      this.sprintService.completeSprintSession(this.sessionId).subscribe({
         next: () => {
-          console.log('Sukces: zaktualizowano dane na serwerze');
-          this.cdr.detectChanges();
+          alert('Sprint marked as complete!');
+          this.leaveSession();
         },
-        error: (err) => {
-          console.error('CRITICAL: Zapis na serwerze nie powiódł się!', err);
+        error: () => {
+          alert('Could not complete sprint. Please log in again.');
         }
       });
     }

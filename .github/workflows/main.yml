@@ -40,8 +40,5 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Run SpotBugs
-        run: ./gradlew spotbugsMain spotbugsTest
-
       - name: Build and run tests
         run: ./gradlew build

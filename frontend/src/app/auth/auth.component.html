@@ -1,0 +1,110 @@
+<div class="auth-container">
+  <h2>{{ mode === 'login' ? 'Log in' : 'Register' }}</h2>
+
+  <div class="tabs">
+    <button type="button" (click)="switchMode('login')" [class.active]="mode === 'login'">
+      Login
+    </button>
+
+    <button type="button" (click)="switchMode('register')" [class.active]="mode === 'register'">
+      Register
+    </button>
+  </div>
+
+  <form *ngIf="mode === 'login'" [formGroup]="loginForm" (ngSubmit)="login()">
+    <label>Email</label>
+    <input
+      formControlName="email"
+      placeholder="Enter your email"
+      [class.invalid]="isInvalid(loginForm, 'email')"
+    >
+
+    <small class="field-error" *ngIf="hasError(loginForm, 'email', 'required')">
+      Email is required.
+    </small>
+
+    <small class="field-error" *ngIf="hasError(loginForm, 'email', 'email')">
+      Enter a valid email address.
+    </small>
+
+    <label>Password</label>
+    <input
+      formControlName="password"
+      type="password"
+      placeholder="Enter your password"
+      [class.invalid]="isInvalid(loginForm, 'password')"
+    >
+
+    <small class="field-error" *ngIf="hasError(loginForm, 'password', 'required')">
+      Password is required.
+    </small>
+
+    <button type="submit">
+      Log in
+    </button>
+  </form>
+
+  <form *ngIf="mode === 'register'" [formGroup]="registerForm" (ngSubmit)="register()">
+    <label>Username</label>
+    <input
+      formControlName="username"
+      placeholder="Choose username"
+      [class.invalid]="isInvalid(registerForm, 'username')"
+    >
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'username', 'required')">
+      Username is required.
+    </small>
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'username', 'minlength')">
+      Username must have at least 3 characters.
+    </small>
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'username', 'maxlength')">
+      Username cannot be longer than 20 characters.
+    </small>
+
+    <label>Email</label>
+    <input
+      formControlName="email"
+      placeholder="Enter your email"
+      [class.invalid]="isInvalid(registerForm, 'email')"
+    >
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'email', 'required')">
+      Email is required.
+    </small>
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'email', 'email')">
+      Enter a valid email address.
+    </small>
+
+    <label>Password</label>
+    <input
+      formControlName="password"
+      type="password"
+      placeholder="Create password"
+      [class.invalid]="isInvalid(registerForm, 'password')"
+    >
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'password', 'required')">
+      Password is required.
+    </small>
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'password', 'minlength')">
+      Password must have at least 6 characters.
+    </small>
+
+    <small class="field-error" *ngIf="hasError(registerForm, 'password', 'maxlength')">
+      Password cannot be longer than 50 characters.
+    </small>
+
+    <button type="submit">
+      Register
+    </button>
+  </form>
+
+  <p *ngIf="error" class="error">
+    {{ error }}
+  </p>
+</div>

@@ -1,4 +1,23 @@
 <div class="container">
+
+  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 15px;">
+  <span *ngIf="loggedUser">
+    Logged in as <strong>{{ loggedUser.username }}</strong>
+  </span>
+
+    <button *ngIf="loggedUser" type="button" (click)="logout()" style="background: #dc3545;">
+      Log out
+    </button>
+
+    <button *ngIf="!loggedUser" type="button" (click)="goToLogin()">
+      Log in
+    </button>
+  </div>
+
+  <div *ngIf="!loggedUser" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+    You can view and join sprint sessions, but you must log in to edit, show your presence, complete sprints, or view your history.
+  </div>
+
   <div *ngIf="isLoadingSession" style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
     Loading session...
   </div>
@@ -65,7 +84,7 @@
       <div *ngIf="showHistory" style="margin-top: 15px; text-align: left;">
         <h3 style="text-align: center;">Completed Sprints</h3>
         <p *ngIf="sprintHistory.length === 0" style="text-align: center; color: #666;">No completed sprints found.</p>
-        
+
         <div *ngFor="let pastSprint of sprintHistory" style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 10px;">
           <h4 style="margin-top: 0; color: #0056b3;">Goal: {{ pastSprint.goal || 'No Goal Defined' }} (Code: {{ pastSprint.sessionId }})</h4>
           <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #555;">
@@ -143,13 +162,13 @@
         </div>
 
         <div style="background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
-          <h4 style="margin: 0 0 10px 0; font-size: 0.9em;">Product Backlog Items:</h4>
+          <h4 style="margin: 0 0 10px 0; font-size: 0.9em;">Tasks:</h4>
           <ul style="list-style: none; padding: 0;">
-            <li *ngFor="let item of story.backlogItems; trackBy: trackByItem"
+            <li *ngFor="let item of story.tasks; trackBy: trackByTask"
                 [ngClass]="(item.status || 'To Do').toLowerCase().replace(' ', '-')"
                 style="margin-bottom: 5px; padding: 5px 10px; display: flex; justify-content: space-between; border-left: 5px solid; border-radius: 3px; background: #fafafa;">
               <span>{{ item.title }}</span>
-              <select [value]="item.status" (change)="changeBacklogItemStatus(story.id, item.id, $any($event.target).value)">
+              <select [value]="item.status" (change)="changeTaskStatus(story.id, item.id, $any($event.target).value)">
                 <option value="To Do">To Do</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Done">Done</option>
@@ -157,8 +176,8 @@
             </li>
           </ul>
           <div style="display: flex; gap: 5px; margin-top: 10px;">
-            <input #pbiTitle placeholder="New PBI..." style="flex: 1; padding: 4px;">
-            <button (click)="addBacklogItemToStory(story.id, pbiTitle.value); pbiTitle.value=''">Add</button>
+            <input #taskTitle placeholder="New Task..." style="flex: 1; padding: 4px;">
+            <button type="button" (click)="addTaskToStory(story.id, taskTitle.value); taskTitle.value=''">Add</button>
           </div>
         </div>
       </li>
