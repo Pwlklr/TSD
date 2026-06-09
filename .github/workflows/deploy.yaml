@@ -17,39 +17,26 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           command_timeout: 60m
           script: |
+            set -e
+
             cd /home/pawel_kelar_put/TSD
-            
-            echo "=== Current user ==="
+
+            git config --global --add safe.directory /home/pawel_kelar_put/TSD
+
+            echo "=== USER ==="
             whoami
+            echo "USER=$USER"
+            id
 
-            echo "=== Current directory ==="
-            pwd
-
-            echo "=== Project folder owner ==="
-            ls -ld /home/pawel_kelar_put/TSD
-
-            echo "=== .git folder owner ==="
+            echo "=== .git permissions ==="
             ls -ld /home/pawel_kelar_put/TSD/.git
 
-            echo "=== FETCH_HEAD owner ==="
-            ls -l /home/pawel_kelar_put/TSD/.git/FETCH_HEAD || true
+            echo "=== Can write to .git? ==="
+            touch /home/pawel_kelar_put/TSD/.git/test_write_file
+            ls -l /home/pawel_kelar_put/TSD/.git/test_write_file
+            rm /home/pawel_kelar_put/TSD/.git/test_write_file
 
-            echo "=== Git status test ==="
-            git config --global --add safe.directory /home/pawel_kelar_put/TSD
-            git status
+            echo "=== Try git fetch ==="
+            git fetch origin
 
-            
-            # Pobranie najnowszego kodu
-            git pull origin main
-            
-            # Utworzenie pliku .env z sekretów GitHuba
-            cat <<EOF | sudo tee .env > /dev/null
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRATION_MS=${{ secrets.JWT_EXPIRATION_MS }}
-            EOF
-            
-            sudo docker-compose down
-
-            sudo docker-compose up -d --build
-            
-            sudo docker image prune -f
+            echo "=== Done, no deploy executed ==="
