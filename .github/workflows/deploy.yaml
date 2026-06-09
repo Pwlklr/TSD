@@ -18,21 +18,20 @@ jobs:
           command_timeout: 60m
           script: |
             set -e
+
             cd /home/pawel_kelar_put/TSD
+
             git config --global --add safe.directory /home/pawel_kelar_put/TSD
             sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD/.git
             sudo chmod -R u+rwX /home/pawel_kelar_put/TSD/.git
-            
-            # Pobranie najnowszego kodu
-            git fetch origin
-            git checkout Deploy
-            
-            # Utworzenie pliku .env z sekretów GitHuba
-            cat <<EOF | sudo tee .env > /dev/null
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRATION_MS=${{ secrets.JWT_EXPIRATION_MS }}
-            EOF
-            
-            sudo docker-compose up -d --build
-            
-            sudo docker image prune -f
+
+            echo "=== Current branch ==="
+            git branch --show-current
+
+            echo "=== Status ==="
+            git status
+
+            echo "=== docker-compose.yml diff ==="
+            git diff -- docker-compose.yml
+
+            echo "=== Done, no deploy executed ==="
