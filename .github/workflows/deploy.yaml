@@ -23,17 +23,12 @@ jobs:
 
             git config --global --add safe.directory /home/pawel_kelar_put/TSD
 
-            echo "=== USER ==="
-            whoami
-            echo "USER=$USER"
-            id
+            echo "=== Fix .git permissions ==="
+            sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD/.git
+            sudo chmod -R u+rwX /home/pawel_kelar_put/TSD/.git
 
-            echo "=== .git permissions ==="
-            ls -ld /home/pawel_kelar_put/TSD/.git
-
-            echo "=== Can write to .git? ==="
+            echo "=== Test write to .git ==="
             touch /home/pawel_kelar_put/TSD/.git/test_write_file
-            ls -l /home/pawel_kelar_put/TSD/.git/test_write_file
             rm /home/pawel_kelar_put/TSD/.git/test_write_file
 
             echo "=== Try git fetch ==="
