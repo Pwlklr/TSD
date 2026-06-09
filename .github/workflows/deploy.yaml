@@ -17,21 +17,20 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           command_timeout: 60m
           script: |
-            set -e
-
             cd /home/pawel_kelar_put/TSD
-
             git config --global --add safe.directory /home/pawel_kelar_put/TSD
-
-            echo "=== Fix .git permissions ==="
             sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD/.git
             sudo chmod -R u+rwX /home/pawel_kelar_put/TSD/.git
-
-            echo "=== Test write to .git ==="
-            touch /home/pawel_kelar_put/TSD/.git/test_write_file
-            rm /home/pawel_kelar_put/TSD/.git/test_write_file
-
-            echo "=== Try git fetch ==="
-            git fetch origin
-
-            echo "=== Done, no deploy executed ==="
+            
+            # Pobranie najnowszego kodu
+            git pull origin main
+            
+            # Utworzenie pliku .env z sekretów GitHuba
+            cat <<EOF | sudo tee .env > /dev/null
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRATION_MS=${{ secrets.JWT_EXPIRATION_MS }}
+            EOF
+            
+            sudo docker-compose up -d --build
+            
+            sudo docker image prune -f
