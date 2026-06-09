@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface SprintRepository extends MongoRepository<SprintSession, String> {
     List<SprintSession> findByCompletedTrue();
+    List<SprintSession> findByCompletedTrueAndParticipantUserIdsContaining(String userId);
+
 }
