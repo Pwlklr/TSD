@@ -32,7 +32,6 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             
-            GCP_VM_IP='${{ secrets.GCP_VM_IP }}'
             
             sed -i "s|http://localhost:8080/api/auth|/api/auth|g" frontend/src/app/services/auth.service.ts
             sed -i "s|http://localhost:8080/api/sprints|/api/sprints|g" frontend/src/app/services/sprint.service.ts
