@@ -18,7 +18,26 @@ jobs:
           command_timeout: 60m
           script: |
             cd /home/pawel_kelar_put/TSD
+            
+            echo "=== Current user ==="
+            whoami
+
+            echo "=== Current directory ==="
+            pwd
+
+            echo "=== Project folder owner ==="
+            ls -ld /home/pawel_kelar_put/TSD
+
+            echo "=== .git folder owner ==="
+            ls -ld /home/pawel_kelar_put/TSD/.git
+
+            echo "=== FETCH_HEAD owner ==="
+            ls -l /home/pawel_kelar_put/TSD/.git/FETCH_HEAD || true
+
+            echo "=== Git status test ==="
             git config --global --add safe.directory /home/pawel_kelar_put/TSD
+            git status
+
             
             # Pobranie najnowszego kodu
             git pull origin main
