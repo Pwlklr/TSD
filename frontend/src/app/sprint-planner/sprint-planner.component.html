@@ -32,13 +32,13 @@
 
   <div *ngIf="!sessionNotFound" class="session-header" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; position: relative;">
     <div *ngIf="sessionId" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
-    <button (click)="completeSprint()" style="background: #28a745; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
-      Complete Sprint
-    </button>
-    <button (click)="leaveSession()" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
-      Leave Session
-    </button>
-  </div>
+      <button (click)="completeSprint()" style="background: #28a745; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
+        Complete Sprint
+      </button>
+      <button (click)="leaveSession()" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;">
+        Leave Session
+      </button>
+    </div>
 
     <h2 style="margin-top: 0;">Collaboration Hub</h2>
     <div *ngIf="sessionId; else noSession">
@@ -61,44 +61,43 @@
     </div>
 
     <ng-template #noSession>
-    <p>Start a shared session to collaborate with your team.</p>
-    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
-      <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-        Create Shared Sprint
-      </button>
-      <span style="color: #666;">or</span>
-      <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()" style="display: flex; gap: 10px;">
-        <input formControlName="sessionCode" placeholder="Enter session code..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <button type="submit" [disabled]="joinForm.invalid" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-          Join
+      <p>Start a shared session to collaborate with your team.</p>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+        <button (click)="createSharedSession()" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+          Create Shared Sprint
         </button>
-      </form>
-    </div>
-    <p *ngIf="joinError" style="color: red; margin-top: 10px;">{{ joinError }}</p>
+        <span style="color: #666;">or</span>
+        <form [formGroup]="joinForm" (ngSubmit)="joinSharedSession()" style="display: flex; gap: 10px;">
+          <input formControlName="sessionCode" placeholder="Enter session code..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+          <button type="submit" [disabled]="joinForm.invalid" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+            Join
+          </button>
+        </form>
+      </div>
+      <p *ngIf="joinError" style="color: red; margin-top: 10px;">{{ joinError }}</p>
 
-    <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px;">
-      <button (click)="toggleHistory()" style="background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
-        {{ showHistory ? 'Hide Sprint History' : 'View Sprint History' }}
-      </button>
+      <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px;">
+        <button (click)="toggleHistory()" style="background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
+          {{ showHistory ? 'Hide Sprint History' : 'View Sprint History' }}
+        </button>
 
-      <div *ngIf="showHistory" style="margin-top: 15px; text-align: left;">
-        <h3 style="text-align: center;">Completed Sprints</h3>
-        <p *ngIf="sprintHistory.length === 0" style="text-align: center; color: #666;">No completed sprints found.</p>
+        <div *ngFor="let pastSprint of sprintHistory" style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 10px; position: relative;">
 
-        <div *ngFor="let pastSprint of sprintHistory" style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 10px;">
-          <h4 style="margin-top: 0; color: #0056b3;">Goal: {{ pastSprint.goal || 'No Goal Defined' }} (Code: {{ pastSprint.sessionId }})</h4>
+          <button type="button" (click)="deleteSprintFromHistory(pastSprint.sessionId ?? '', pastSprint.goal)" class="btn-delete-icon" style="position: absolute; top: 15px; right: 15px;" title="Delete from history">❌</button>
+
+          <h4 style="margin-top: 0; color: #0056b3; padding-right: 30px;">Goal: {{ pastSprint.goal || 'No Goal Defined' }} (Code: {{ pastSprint.sessionId }})</h4>
           <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #555;">
             <strong>Total Stories:</strong> {{ pastSprint.stories.length }}
           </p>
-          <ul style="margin-top: 10px; padding-left: 20px; font-size: 0.9em;">
-            <li *ngFor="let story of pastSprint.stories">
+
+          <ul style="margin-top: 10px; padding-left: 20px; font-size: 0.9em; list-style: disc;">
+            <li *ngFor="let story of pastSprint.stories" style="background: transparent; padding: 2px 0; margin-top: 2px; border-left: none; box-shadow: none;">
               {{ story.title }} - <strong>{{ story.status }}</strong>
             </li>
           </ul>
         </div>
       </div>
-    </div>
-  </ng-template>
+    </ng-template>
   </div>
 
   <div *ngIf="!sessionNotFound" class="progress-section">
@@ -134,7 +133,7 @@
     </form>
 
     <div class="display-goal-box">
-      <strong>Current Goal:</strong>
+      <strong>Current Goal :</strong>
       <span class="goal-text">{{ sprintGoal || 'No goal set yet.' }}</span>
     </div>
   </section>
@@ -150,8 +149,13 @@
 
     <ul>
       <li *ngFor="let story of stories; trackBy: trackByStory" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">
-        <strong>{{ story.title }}</strong>
-        <span class="status-badge">{{ story.status }}</span>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <strong>{{ story.title }}</strong>
+            <span class="status-badge">{{ story.status }}</span>
+          </div>
+          <button type="button" (click)="deleteStory(story.id, story.title)" class="btn-delete-text">Delete</button>
+        </div>
 
         <div class="status-container" style="margin: 10px 0;">
           <select [value]="story.status" (change)="changeStatus(story.id, $any($event.target).value)">
@@ -168,11 +172,14 @@
                 [ngClass]="(item.status || 'To Do').toLowerCase().replace(' ', '-')"
                 style="margin-bottom: 5px; padding: 5px 10px; display: flex; justify-content: space-between; border-left: 5px solid; border-radius: 3px; background: #fafafa;">
               <span>{{ item.title }}</span>
-              <select [value]="item.status" (change)="changeTaskStatus(story.id, item.id, $any($event.target).value)">
-                <option value="To Do">To Do</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
-              </select>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <select [value]="item.status" (change)="changeTaskStatus(story.id, item.id, $any($event.target).value)">
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+                <button type="button" (click)="deleteTask(story.id, item.id, item.title)" class="btn-delete-icon">❌</button>
+              </div>
             </li>
           </ul>
           <div style="display: flex; gap: 5px; margin-top: 10px;">
@@ -184,3 +191,10 @@
     </ul>
   </section>
 </div>
+
+  <app-confirmation-modal
+    *ngIf="isModalOpen"
+    [itemName]="modalItemName"
+    (confirm)="confirmDelete()"
+    (cancel)="closeModal()">
+  </app-confirmation-modal>

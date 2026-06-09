@@ -134,3 +134,44 @@ li {
   border-radius: 10px;
   transition: width 0.3s ease;
 }
+
+.btn-delete-icon {
+  background: transparent;
+  color: #dc3545;
+  border: none;
+  padding: 4px;
+  margin: 0;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+  .btn-delete-icon:hover {
+    background-color: #fce8e6;
+  }
+
+.btn-delete-text {
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+  .btn-delete-text:hover {
+    background-color: #dc3545;
+    color: white;
+  }
+
+.story-group input {
+  display: inline-block;
+}

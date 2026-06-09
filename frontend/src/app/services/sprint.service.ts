@@ -81,4 +81,8 @@ export class SprintService {
   removePresence(sessionId: string, userId: string): Observable<SprintData> {
     return this.http.delete<SprintData>(`${this.apiUrl}/${sessionId}/presence/${userId}`);
   }
+
+  deleteSprintFromHistory(sessionId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/history/${sessionId}`);
+  }
 }
