@@ -25,37 +25,19 @@ jobs:
             sudo chown -R $USER:$USER /home/pawel_kelar_put/TSD/.git
             sudo chmod -R u+rwX /home/pawel_kelar_put/TSD/.git
 
-            echo "=== Current branch ==="
-            git branch --show-current
-
-            echo "=== Fetch origin ==="
             git fetch origin
 
-            echo "=== Current commit on VM ==="
-            git log -1 --oneline --decorate
+            # Cofnij tylko lokalną zmianę w docker-compose.yml
+            git restore --source=origin/main -- docker-compose.yml
 
-            echo "=== origin/main commit ==="
-            git log -1 --oneline origin/main
+            # Pobierz maina
+            git pull origin main
 
-            echo "=== origin/Deploy commit ==="
-            git log -1 --oneline origin/Deploy
+            cat <<EOF | sudo tee .env > /dev/null
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRATION_MS=${{ secrets.JWT_EXPIRATION_MS }}
+            EOF
 
-            echo "=== Git status short ==="
-            git status --short
+            sudo docker-compose up -d --build --force-recreate
 
-            echo "=== Changed tracked files ==="
-            git diff --name-only
-
-            echo "=== Untracked files ==="
-            git ls-files --others --exclude-standard
-
-            echo "=== docker-compose.yml diff on VM ==="
-            git diff -- docker-compose.yml
-
-            echo "=== docker-compose.yml ports in origin/main ==="
-            git show origin/main:docker-compose.yml | grep -A5 "ports:" || true
-
-            echo "=== docker-compose.yml ports in origin/Deploy ==="
-            git show origin/Deploy:docker-compose.yml | grep -A5 "ports:" || true
-
-            echo "=== Done, no reset, no deploy executed ==="
+            sudo docker image prune -f
