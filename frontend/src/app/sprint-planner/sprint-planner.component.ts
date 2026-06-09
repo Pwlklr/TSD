@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../services/sprint.service';
+import { ConfirmationModalComponent } from './confirmation-modal.component';
 import { UserStory, Task, SessionUser, SprintData } from '../models/sprint.model';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
@@ -10,7 +11,7 @@ import { AuthService } from '../services/auth.service';
 @Component({
   selector: 'app-sprint-planner',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule, ConfirmationModalComponent],
   templateUrl: './sprint-planner.component.html',
   styleUrls: ['./sprint-planner.component.css']
 })
@@ -34,6 +35,10 @@ export class SprintPlannerComponent implements OnInit, OnDestroy {
 
   private presenceSubscription?: Subscription;
   private wsSubscription?: Subscription;
+
+  isModalOpen = false;
+  modalItemName = '';
+  pendingDeleteAction: (() => void) | null = null;
 
   constructor(
     private fb: FormBuilder,

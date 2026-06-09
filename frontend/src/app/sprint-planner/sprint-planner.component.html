@@ -134,7 +134,7 @@
     </form>
 
     <div class="display-goal-box">
-      <strong>Current Goal:</strong>
+      <strong>Current Goal: </strong>
       <span class="goal-text">{{ sprintGoal || 'No goal set yet.' }}</span>
     </div>
   </section>
@@ -150,8 +150,13 @@
 
     <ul>
       <li *ngFor="let story of stories; trackBy: trackByStory" [ngClass]="(story.status || 'To Do').toLowerCase().replace(' ', '-')">
-        <strong>{{ story.title }}</strong>
-        <span class="status-badge">{{ story.status }}</span>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <strong>{{ story.title }}</strong>
+            <span class="status-badge">{{ story.status }}</span>
+          </div>
+          <button type="button" (click)="deleteStory(story.id, story.title)" class="btn-delete-text">Delete</button>
+        </div>
 
         <div class="status-container" style="margin: 10px 0;">
           <select [value]="story.status" (change)="changeStatus(story.id, $any($event.target).value)">
@@ -168,11 +173,14 @@
                 [ngClass]="(item.status || 'To Do').toLowerCase().replace(' ', '-')"
                 style="margin-bottom: 5px; padding: 5px 10px; display: flex; justify-content: space-between; border-left: 5px solid; border-radius: 3px; background: #fafafa;">
               <span>{{ item.title }}</span>
-              <select [value]="item.status" (change)="changeTaskStatus(story.id, item.id, $any($event.target).value)">
-                <option value="To Do">To Do</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
-              </select>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <select [value]="item.status" (change)="changeTaskStatus(story.id, item.id, $any($event.target).value)">
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+                <button type="button" (click)="deleteTask(story.id, item.id, item.title)" class="btn-delete-icon">❌</button>
+              </div>
             </li>
           </ul>
           <div style="display: flex; gap: 5px; margin-top: 10px;">
@@ -184,3 +192,10 @@
     </ul>
   </section>
 </div>
+
+<app-confirmation-modal
+  *ngIf="isModalOpen"
+  [itemName]="modalItemName"
+  (confirm)="confirmDelete()"
+  (cancel)="closeModal()">
+</app-confirmation-modal>
