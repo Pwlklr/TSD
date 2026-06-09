@@ -28,10 +28,34 @@ jobs:
             echo "=== Current branch ==="
             git branch --show-current
 
-            echo "=== Status ==="
-            git status
+            echo "=== Fetch origin ==="
+            git fetch origin
 
-            echo "=== docker-compose.yml diff ==="
+            echo "=== Current commit on VM ==="
+            git log -1 --oneline --decorate
+
+            echo "=== origin/main commit ==="
+            git log -1 --oneline origin/main
+
+            echo "=== origin/Deploy commit ==="
+            git log -1 --oneline origin/Deploy
+
+            echo "=== Git status short ==="
+            git status --short
+
+            echo "=== Changed tracked files ==="
+            git diff --name-only
+
+            echo "=== Untracked files ==="
+            git ls-files --others --exclude-standard
+
+            echo "=== docker-compose.yml diff on VM ==="
             git diff -- docker-compose.yml
 
-            echo "=== Done, no deploy executed ==="
+            echo "=== docker-compose.yml ports in origin/main ==="
+            git show origin/main:docker-compose.yml | grep -A5 "ports:" || true
+
+            echo "=== docker-compose.yml ports in origin/Deploy ==="
+            git show origin/Deploy:docker-compose.yml | grep -A5 "ports:" || true
+
+            echo "=== Done, no reset, no deploy executed ==="
