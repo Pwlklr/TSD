@@ -28,12 +28,7 @@ jobs:
             sudo chmod -R u+rwX /home/pawel_kelar_put/TSD
 
             git fetch origin
-
-            # Cofnij tylko lokalną zmianę w docker-compose.yml
-            git restore --source=origin/main -- docker-compose.yml
-
-            # Pobierz maina
-            git pull origin main
+            git reset --hard origin/main
 
             cat <<EOF | sudo tee .env > /dev/null
             JWT_SECRET=${{ secrets.JWT_SECRET }}
